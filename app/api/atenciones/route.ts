@@ -128,7 +128,7 @@ export async function GET(req: Request) {
       }
     });
 
-    const formattedAtenciones = atenciones.map(a => ({
+    const formattedAtenciones = atenciones.map((a: any) => ({
       id: a.id,
       programaId: a.programaId,
       pacienteId: a.pacienteId,
