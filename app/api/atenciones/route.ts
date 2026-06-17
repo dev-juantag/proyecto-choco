@@ -205,7 +205,7 @@ export async function POST(req: Request) {
       apellidos = words.slice(splitIndex).join(" ").toUpperCase()
     }
 
-    const nuevaAtencion = await prisma.$transaction(async (tx) => {
+    const nuevaAtencion = await prisma.$transaction(async (tx: any) => {
       const currentUser = await tx.user.findUnique({
         where: { id: finalProfesionalId },
         select: { territorioId: true }
