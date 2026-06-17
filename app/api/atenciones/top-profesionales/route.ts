@@ -27,7 +27,7 @@ export async function GET(req: Request) {
       },
     });
 
-    const profIdsWithAtenciones = topCounts.map(t => t.profesionalId);
+    const profIdsWithAtenciones = topCounts.map((t: any) => t.profesionalId);
 
     // Obtener a todos los profesionales activos
     const allProfs = await prisma.user.findMany({
