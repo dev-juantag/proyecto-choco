@@ -1,0 +1,273 @@
+datasource db {
+  provider  = "postgresql"
+}
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+model User {
+  id                    String        @id @default(uuid())
+  nombre                String
+  apellidos             String
+  documento             String        @unique
+  email                 String        @unique
+  telefono              String?
+  password              String
+  rol                   String        // e.g. SUPERADMIN, ADMIN, AUXILIAR, PROFESIONAL, FACTURADOR
+  activo                Boolean       @default(true)
+  programaId            String?
+  programa              Programa?     @relation(fields: [programaId], references: [id])
+  territorioId          String?
+  territorio            Territorio?   @relation("UserTerritorio", fields: [territorioId], references: [id])
+  territoriosAsignados  Territorio[]  @relation("UserTerritoriosAsignados")
+  fichasCreadas         FichaHogar[]
+  atenciones            Atencion[]
+  derivaciones          Derivacion[]
+  contratos             Contrato[]
+  seguimientos          SeguimientoFamiliar[]
+  lastLogin             DateTime?
+  recoveryCode          String?
+  recoveryExpires       DateTime?
+  lastDownloadAtenciones DateTime?
+  lastDownloadIdentificaciones DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+}
+
+model Territorio {
+  id            String        @id @default(uuid())
+  codigo        String        @unique
+  nombre        String
+  descripcion   String?
+  whatsappLink  String?
+  users         User[]        @relation("UserTerritorio")
+  usersAsignados User[]       @relation("UserTerritoriosAsignados")
+  fichas        FichaHogar[]
+  atenciones    Atencion[]
+  derivaciones  Derivacion[]
+  contratos     Contrato[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Programa {
+  id            String        @id @default(uuid())
+  nombre        String        @unique
+  meta          Int?
+  users         User[]
+  atenciones    Atencion[]
+  derivaciones  Derivacion[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model FichaHogar {
+  id                    String        @id @default(uuid())
+  consecutivo           Int           @unique @default(autoincrement())
+  estadoVisita          String        @default("1") // 1 = EFECTIVA, 2 = NO EFECTIVA, 3 = RECHAZADA
+  departamento          String        @default("CHOCO")
+  municipio             String        @default("QUIBDO")
+  territorioId          String?
+  territorio            Territorio?   @relation(fields: [territorioId], references: [id])
+  microterritorio       String?       @default("MT01")
+  uzpe                  String?
+  centroPoblado         String?
+  descripcionUbicacion  String?
+  direccion             String
+  latitud               Float?
+  longitud              Float?
+  fechaDiligenciamiento DateTime      @default(now())
+  encuestadorId         String?
+  encuestador           User?         @relation(fields: [encuestadorId], references: [id])
+  numEBS                String?
+  prestadorPrimario     String?
+  observacionesRechazo  String?
+  numHogar              String?
+  numFamilia            String?
+  codFicha              String?
+  
+  // Vivienda
+  tipoVivienda          Int?
+  tipoViviendaDesc      String?
+  matParedes            Int?
+  matPisos              Int?
+  matTechos             Int?
+  numHogares            Int?
+  numDormitorios        Int?
+  estratoSocial         Int?
+  hacinamiento          Boolean?      @default(false)
+  fuenteAgua            Int[]
+  dispExcretas          Int[]
+  aguasResiduales       Int[]
+  dispResiduos          Int[]
+  riesgoAccidente       Int[]
+  fuenteEnergia         Int?
+  presenciaVectores     Boolean?      @default(false)
+  animales              Int[]
+  cantAnimales          Int?
+  vacunacionMascotas    Boolean?      @default(false)
+  
+  // Familia
+  tipoFamilia           Int?
+  numIntegrantes        Int           @default(0)
+  apgar                 Int?
+  apgarRespuestas       Int[]
+  ecomapa               Int?
+  cuidadorPrincipal     Boolean?      @default(false)
+  zarit                 Int?
+  vulnerabilidades      Int[]
+  familiogramaCodigo    String?
+  otrosJson             Json?
+  pacientes             Paciente[]
+  seguimientos          SeguimientoFamiliar[]
+  derivaciones          Derivacion[]
+  compromisos           Compromiso[]
+  puedeActualizarse     Boolean       @default(true)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+}
+
+model Paciente {
+  id                      String        @id @default(uuid())
+  fichaId                 String?
+  ficha                   FichaHogar?   @relation(fields: [fichaId], references: [id])
+  nombres                 String
+  apellidos               String
+  tipoDoc                 String
+  documento               String        @unique
+  fechaNacimiento         String
+  parentesco              Int           @default(1)
+  sexo                    String
+  generoIdentidad         String?
+  gestante                String        @default("NA")
+  mesesGestacion          Int?
+  telefono                String?
+  direccion               String?
+  nivelEducativo          Int?
+  ocupacion               Int?
+  regimen                 String?
+  eapb                    String?
+  etnia                   Int?
+  puebloIndigena          String?
+  grupoPoblacional        Int[]
+  barrerasAcceso          Int[]
+  discapacidades          Int[]
+  antecedentes            Json?
+  antecTransmisibles      Json?
+  peso                    Float?
+  talla                   Float?
+  perimetroBraquial       Float?
+  diagNutricional         Int?
+  practicaDeportiva       Boolean?      @default(false)
+  lactanciaMaterna        Boolean?      @default(false)
+  lactanciaMeses          Int?
+  esquemaAtenciones       Boolean?      @default(false)
+  esquemaVacunacion       Boolean?      @default(false)
+  intervencionesPendientes Int[]
+  enfermedadAguda         Boolean?      @default(false)
+  recibeAtencionMedica    Boolean?      @default(false)
+  remisiones              String[]
+  barrerasAccesoOtro      String?
+  otrosJson               Json?
+  atenciones              Atencion[]
+  derivaciones            Derivacion[]
+  compromisos             Compromiso[]
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+}
+
+model Atencion {
+  id                      String        @id @default(uuid())
+  pacienteId              String
+  paciente                Paciente      @relation(fields: [pacienteId], references: [id])
+  profesionalId           String
+  profesional             User          @relation(fields: [profesionalId], references: [id])
+  programaId              String
+  programa                Programa      @relation(fields: [programaId], references: [id])
+  nota                    Json
+  territorioId            String?
+  territorio              Territorio?   @relation(fields: [territorioId], references: [id])
+  estadoFacturacion       String        @default("SIN_FACTURAR")
+  observacionFacturacion  String?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+}
+
+model Derivacion {
+  id            String      @id @default(uuid())
+  pacienteId    String
+  paciente      Paciente    @relation(fields: [pacienteId], references: [id])
+  fichaId       String?
+  ficha         FichaHogar? @relation(fields: [fichaId], references: [id])
+  profesionalId String
+  profesional   User        @relation(fields: [profesionalId], references: [id])
+  programaId    String
+  programa      Programa    @relation(fields: [programaId], references: [id])
+  territorioId  String?
+  territorio    Territorio? @relation(fields: [territorioId], references: [id])
+  motivo        String
+  diagnostico   String?
+  destino       String?
+  observaciones String?
+  estado        String      @default("PENDIENTE") // PENDIENTE, EN_PROCESO, ATENDIDA, CERRADA, CANCELADA
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model SeguimientoFamiliar {
+  id                String       @id @default(uuid())
+  fichaId           String
+  ficha             FichaHogar   @relation(fields: [fichaId], references: [id])
+  observacion       String
+  acuerdosCumplidos Boolean      @default(false)
+  responsableId     String
+  responsable       User         @relation(fields: [responsableId], references: [id])
+  consecutivo       Int
+  compromisosVerif  Compromiso[] @relation("VerificadoEn")
+  compromisosCread  Compromiso[] @relation("CreadoEn")
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+model SystemSettings {
+  id                 String   @id @default(uuid())
+  currentStageStart  DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Contrato {
+  id              String      @id @default(uuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  territorioId    String?
+  territorio      Territorio? @relation(fields: [territorioId], references: [id], onDelete: SetNull)
+  perfil          String?
+  estado          String      @default("SELECCIONADO") // SELECCIONADO, ACTIVO, ASIGNACION_TERRITORIO, FINALIZADO
+  numeroContrato  String?
+  cdp             String?
+  rp              String?
+  numeroPoliza    String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model Compromiso {
+  id             String               @id @default(uuid())
+  fichaId        String
+  ficha          FichaHogar           @relation(fields: [fichaId], references: [id])
+  pacienteId     String?
+  paciente       Paciente?            @relation(fields: [pacienteId], references: [id])
+  descripcion    String
+  observacion    String?
+  fechaMeta      DateTime?
+  estado         String               @default("PENDIENTE") // PENDIENTE, CUMPLIDO, INCUMPLIDO, etc.
+  creadoEnId     String?
+  creadoEn       SeguimientoFamiliar? @relation("CreadoEn", fields: [creadoEnId], references: [id])
+  verificadoEnId String?
+  verificadoEn   SeguimientoFamiliar? @relation("VerificadoEn", fields: [verificadoEnId], references: [id])
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+}

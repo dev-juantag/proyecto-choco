@@ -1,0 +1,379 @@
+export const dynamic = "force-dynamic";
+import { prisma } from "@/lib/prisma"
+import { NextResponse } from "next/server"
+
+import { 
+  ESTADO_VISITA, TIPO_VIVIENDA, MATERIAL_PAREDES, MATERIAL_PISOS, MATERIAL_TECHOS,
+  FUENTE_AGUA, DISPOSICION_EXCRETAS, AGUAS_RESIDUALES, DISPOSICION_RESIDUOS,
+  RIESGO_ACCIDENTE, FUENTE_ENERGIA, ANIMALES, TIPO_FAMILIA, APGAR_OPCIONES,
+  ZARIT_OPCIONES, ECOMAPA_OPCIONES, TIPO_DOCUMENTO, SEXO, PARENTESCO,
+  NIVEL_EDUCATIVO, OCUPACION, ETNIA, GRUPO_POBLACIONAL, DISCAPACIDADES,
+  INTERVENCIONES_PENDIENTES, DIAGNOSTICO_NUTRICIONAL, REMISIONES_SISTEMA,
+  VULNERABILIDADES, REGIMEN_SALUD, ANTECEDENTES_CRONICOS, ANTECEDENTES_TRANSMISIBLES
+} from "@/lib/constants"
+
+// ============================================================
+// MAPA DE TERRITORIOS: codigo corto => nombre en BD
+// ============================================================
+const TERRITORIO_MAP: Record<string, string> = {
+  'T01': 'TERRITORIO NORTE 01',
+  'T02': 'TERRITORIO NORTE 02',
+  'T03': 'TERRITORIO NORTE 03',
+  'T04': 'TERRITORIO NORTE 04',
+  'T05': 'TERRITORIO SUR 01',
+  'T06': 'TERRITORIO SUR 02',
+  'T07': 'TERRITORIO SUR 03',
+  'T08': 'TERRITORIO SUR 04',
+  'T09': 'TERRITORIO CENTRAL 01',
+  'T10': 'TERRITORIO CENTRAL 02',
+}
+
+function getLabelId(arr: any[], label: string): any {
+  if (!label) return null
+  const clean = label.trim().toLowerCase()
+  // Primero ver si es un número directo
+  const num = parseInt(clean)
+  if (!isNaN(num) && arr.find(x => String(x.id) === clean)) return num
+  // Si no, buscar por etiqueta
+  const found = arr.find(x => x.label.toLowerCase() === clean)
+  return found ? found.id : null
+}
+
+function safeFloat(val: string | undefined | null): number | null {
+  if (!val || val.trim() === '') return null
+  const parsed = parseFloat(val.trim().replace(',', '.'))
+  return isNaN(parsed) ? null : parsed
+}
+
+function safeInt(val: string | undefined | null, catalog?: any[]): any {
+  if (!val || val.trim() === '') return null
+  if (catalog) return getLabelId(catalog, val)
+  const parsed = parseInt(val.trim(), 10)
+  return isNaN(parsed) ? null : parsed
+}
+
+function safeIntArray(val: string | undefined | null, catalog?: any[]): any[] {
+  if (!val || val.trim() === '' || val.toLowerCase() === 'na' || val === '""') return []
+  const parts = val.split(',').map(v => v.trim()).filter(Boolean)
+  if (catalog) {
+    return parts.map(p => getLabelId(catalog, p)).filter(id => id !== null)
+  }
+  return parts.map(v => parseInt(v, 10)).filter(n => !isNaN(n))
+}
+
+function getBoolean(val: string | undefined | null): boolean | null {
+  if (!val || val.trim() === '') return null
+  const l = val.trim().toLowerCase()
+  if (l === '1' || l === 'si' || l === 'true' || l === 'yes' || l === 'sí') return true
+  if (l === '2' || l === 'no' || l === 'false') return false
+  return null
+}
+
+function normalizeMicro(val: string | null | undefined): string | null {
+  if (!val || val.trim() === '') return null
+  const v = val.trim()
+  const match = v.match(/^M(?:T)?(\d+)$/i)
+  if (match) return `MT${match[1].padStart(2, '0')}`
+  return v
+}
+
+function normalizeEstadoVisita(val: string): string {
+  const v = (val || '').trim().toLowerCase()
+  const id = getLabelId(ESTADO_VISITA, v)
+  return id ? String(id) : '1'
+}
+
+function get(obj: Record<string, string>, ...keys: string[]): string {
+  for (const key of keys) {
+    if (obj[key] !== undefined) return obj[key]
+    const lower = key.toLowerCase()
+    if (obj[lower] !== undefined) return obj[lower]
+  }
+  return ''
+}
+
+export async function POST(req: Request) {
+  try {
+    const { csv } = await req.json()
+    if (!csv) return NextResponse.json({ error: "No CSV provided" }, { status: 400 })
+
+    const lines = (csv as string).split(/\r?\n/).filter((l: string) => l.trim() !== '')
+    if (lines.length < 2) return NextResponse.json({ error: "CSV vacío o sin datos" }, { status: 400 })
+
+    // Leer headers exactamente como vienen (sin normalizar a minúsculas)
+    // para poder compararlos luego con el mapeador get()
+    const rawHeaders = lines[0].split(';').map((h: string) => h.trim())
+    const dataLines = lines.slice(1)
+
+    // Construir objetos con la clave original Y la clave en minúsculas
+    const rows = dataLines.map((line: string, lineIndex: number) => {
+      const columns = line.split(';')
+      const obj: Record<string, string> = { _line: String(lineIndex + 2) }
+      rawHeaders.forEach((h: string, i: number) => {
+        if (h) {
+          let cell = (columns[i] || '').trim()
+          if (cell.startsWith('"') && cell.endsWith('"')) cell = cell.slice(1, -1)
+          obj[h] = cell          // clave original: "encuestadorDoc"
+          obj[h.toLowerCase()] = cell  // clave lowercase: "encuestadordoc"
+        }
+      })
+      return obj
+    }).filter((obj) => get(obj, 'globalid', 'consecutivo', 'codFicha', 'codfich') !== '')
+
+    // Agrupar por globalid (una ficha = varios integrantes)
+    const fichasMap = new Map<string, Record<string, string>[]>()
+    rows.forEach((row) => {
+      const key = get(row, 'globalid') || get(row, 'consecutivo') || get(row, 'codFicha') || `UNK-${row._line}`
+      if (!fichasMap.has(key)) fichasMap.set(key, [])
+      fichasMap.get(key)!.push(row)
+    })
+
+    // Cachear todos los territorios de la BD una sola vez
+    const todosTerritorios = await prisma.territorio.findMany({ select: { id: true, nombre: true } })
+
+    function resolverTerritorio(val: string): string | null {
+      if (!val) return null
+      const v = val.trim()
+      // 1. Buscar por nombre exacto (insensible a mayúsculas)
+      const porNombre = todosTerritorios.find((t: any) => t.nombre.toLowerCase() === v.toLowerCase())
+      if (porNombre) return porNombre.id
+      // 2. Buscar por código corto (T14 => nombre en TERRITORIO_MAP => buscar en BD)
+      const nombreMapeado = TERRITORIO_MAP[v.toUpperCase()]
+      if (nombreMapeado) {
+        const porCodigo = todosTerritorios.find((t: any) => t.nombre.toLowerCase() === nombreMapeado.toLowerCase())
+        if (porCodigo) return porCodigo.id
+      }
+      // 3. Buscar por UUID directo
+      const porId = todosTerritorios.find((t: any) => t.id === v)
+      if (porId) return porId.id
+      return null
+    }
+
+    let fichasActualizadas = 0
+    let integrantesActualizados = 0
+    const errors: string[] = []
+
+    for (const [, integrantes] of Array.from(fichasMap.entries())) {
+      const h = integrantes[0]
+
+      try {
+        // ── 1. Encuestador ──────────────────────────────────────────
+        // Si no tiene user en el sistema, se guarda solo nombre/doc como texto
+        let encuestadorId: string | null = null
+        const docEnc = get(h, 'encuestadorDoc', 'encuestadordoc', 'nroIdentificacionResponsableEvaluacion')
+        const nombreEnc = get(h, 'encuestadorNombre', 'encuestadornombre')
+        if (docEnc) {
+          const enc = await prisma.user.findUnique({ where: { documento: docEnc } })
+          encuestadorId = enc?.id || null
+          // No generamos error si no existe: se guarda nombre/doc como texto plano
+        }
+
+        // ── 2. Territorio ───────────────────────────────────────────
+        const territorioRaw = get(h, 'territorio', 'codTerritorio', 'territorioid')
+        let territorioId = resolverTerritorio(territorioRaw)
+
+        if (!territorioId && encuestadorId) {
+          const enc = await prisma.user.findUnique({ where: { id: encuestadorId } })
+          territorioId = enc?.territorioId || null
+        }
+
+        if (!territorioId)
+          errors.push(`Fila ${h._line}: Territorio '${territorioRaw}' no encontrado. La ficha quedará sin asignar.`)
+
+        // ── 3. Ficha Hogar ──────────────────────────────────────────
+        const globalid = get(h, 'globalid')
+        const consec = get(h, 'consecutivo')
+        const codFicha = get(h, 'codFicha', 'codfich')
+
+        let fichaExistente = null
+        if (consec && !isNaN(parseInt(consec)))
+          fichaExistente = await prisma.fichaHogar.findUnique({ where: { consecutivo: parseInt(consec) } })
+        if (!fichaExistente && codFicha)
+          fichaExistente = await prisma.fichaHogar.findFirst({ where: { codFicha } })
+        if (!fichaExistente && globalid)
+          fichaExistente = await prisma.fichaHogar.findFirst({ where: { id: globalid } })
+
+        // Fecha
+        let fechaDiligenciamiento = new Date()
+        const rawFecha = get(h, 'fechaDiligenciamientoFicha', 'fechadiligenciamiento', 'fechaDiligenciamiento')
+        if (rawFecha) {
+          const parsed = new Date(rawFecha.split(' ')[0])
+          if (!isNaN(parsed.getTime())) fechaDiligenciamiento = parsed
+        }
+
+        const dataFicha = {
+          estadoVisita: normalizeEstadoVisita(get(h, 'estadoVisita', 'estadovisita')),
+          departamento: get(h, 'Departamento', 'departamento') || 'CHOCO',
+          municipio: get(h, 'municipio') || 'PAIMADO',
+          territorioId,
+          microterritorio: normalizeMicro(get(h, 'codMicroterritorio', 'microterritorio')),
+          direccion: get(h, 'direccion') || 'Sin dirección',
+          descripcionUbicacion: get(h, 'descripcionUbicacion', 'descripcionubicacion') || null,
+          centroPoblado: get(h, 'centropoblado', 'centroPoblado') || null,
+          latitud: safeFloat(get(h, 'latitud')),
+          longitud: safeFloat(get(h, 'longitud')),
+          fechaDiligenciamiento,
+          encuestadorId,
+          encuestadorNombreRaw: nombreEnc || null,
+          encuestadorDocRaw: docEnc || null,
+          numEBS: get(h, 'nroIdentificacionEBS', 'numebs') || null,
+          prestadorPrimario: get(h, 'prestadorPrimario', 'prestadorprimario') || null,
+          codFicha: codFicha || globalid || null,
+          uzpe: get(h, 'codUzpe', 'coduzpe', 'uzpe') || null,
+          numFamilia: get(h, 'numIdentificacionFamilia', 'numfamilia') || null,
+          numHogar: get(h, 'numIdentificacionHogar', 'numhogar') || null,
+          numIntegrantes: safeInt(get(h, 'nroPersonasVivienda', 'numintegrantes')) || integrantes.length,
+
+          // ── Datos Físicos de Vivienda y Saneamiento ───────────────────
+          tipoVivienda: safeInt(get(h, 'tipoVivienda', 'tipovivienda'), TIPO_VIVIENDA),
+          matParedes: safeInt(get(h, 'matParedes', 'matparedes'), MATERIAL_PAREDES),
+          matPisos: safeInt(get(h, 'matPisos', 'matpisos'), MATERIAL_PISOS),
+          matTechos: safeInt(get(h, 'matTechos', 'mattechos'), MATERIAL_TECHOS),
+          numHogares: safeInt(get(h, 'nroHogaresVivienda', 'nrohogaresvivienda', 'numhogares')),
+          estratoSocial: safeInt(get(h, 'estratoSocial', 'estratosocial')),
+          hacinamiento: getBoolean(get(h, 'hacinamiento')),
+          fuenteAgua: safeIntArray(get(h, 'principalFuenteAguaConsumoHumano', 'fuenteagua'), FUENTE_AGUA),
+          dispExcretas: safeIntArray(get(h, 'disposicionExcretas', 'disposicionexcretas', 'dispexcretas'), DISPOSICION_EXCRETAS),
+          aguasResiduales: safeIntArray(get(h, 'disposicionAguaResidual', 'disposicionaguaresidual', 'aguasresiduales'), AGUAS_RESIDUALES),
+          dispResiduos: safeIntArray(get(h, 'disposicionResiduosSolidos', 'disposicionresiduossolidos', 'dispresiduos'), DISPOSICION_RESIDUOS),
+          riesgoAccidente: safeIntArray(get(h, 'codRiesgoAccidenteVivienda', 'codriesgoaccidentevivienda', 'riesgoaccidente'), RIESGO_ACCIDENTE),
+          fuenteEnergia: safeInt(get(h, 'fuentesEnergiaCombustibleCocinar', 'fuentesenergiacombustiblecocinar', 'fuenteenergia'), FUENTE_ENERGIA),
+          presenciaVectores: getBoolean(get(h, 'observaCriaderosVectores', 'observacriaderosvectores', 'presenciavectores')),
+          animales: safeIntArray(get(h, 'animalesEnViviendaEntornoInmediato', 'animalesenviviendaentornoinmediato', 'animales'), ANIMALES),
+          cantAnimales: safeInt(get(h, 'numeroAnimales', 'numeroanimales', 'cantanimales')),
+          vacunacionMascotas: getBoolean(get(h, 'vacunacionMascotas', 'vacunacionmascotas')),
+
+          // ── Datos Familiares ──────────────────────────────────────────────
+          tipoFamilia: safeInt(get(h, 'tipoFamilia', 'tipofamilia'), TIPO_FAMILIA),
+          apgar: safeInt(get(h, 'codResultadoAPGAR', 'codresultadoapgar', 'apgar'), APGAR_OPCIONES),
+          apgarRespuestas: [
+            safeInt(get(h, 'apgar_P1', 'apgar_p1')) ?? 0,
+            safeInt(get(h, 'apgar_P2', 'apgar_p2')) ?? 0,
+            safeInt(get(h, 'apgar_P3', 'apgar_p3')) ?? 0,
+            safeInt(get(h, 'apgar_P4', 'apgar_p4')) ?? 0,
+            safeInt(get(h, 'apgar_P5', 'apgar_p5')) ?? 0,
+          ].filter(x => x !== null),
+          ecomapa: safeInt(get(h, 'ecomapa', 'ecomapa'), ECOMAPA_OPCIONES),
+          cuidadorPrincipal: getBoolean(get(h, 'cuidador', 'cuidadorprincipal')),
+          zarit: safeInt(get(h, 'escalaZARIT', 'escalazarit', 'zarit'), ZARIT_OPCIONES),
+          vulnerabilidades: safeIntArray(get(h, 'Vulnerabilidad', 'vulnerabilidad'), VULNERABILIDADES),
+          otrosJson: {
+            fuenteAguaOtro: get(h, 'fuenteAguaOtro', 'fuenteaguaotro') || null,
+            dispExcretasOtro: get(h, 'dispExcretasOtro', 'dispexcretasotro') || null,
+            aguasResidualesOtro: get(h, 'aguasResidualesOtro', 'aguasresidualesotro') || null,
+            dispResiduosOtro: get(h, 'dispResiduosOtro', 'dispresiduosotro') || null,
+            riesgoAccidenteOtro: get(h, 'riesgoAccidenteOtro', 'riesgoaccidenteotro') || null,
+            animalesOtro: get(h, 'animalesOtro', 'animalesotro') || null,
+          }
+        }
+
+        let ficha
+        if (fichaExistente) {
+          ficha = await prisma.fichaHogar.update({ where: { id: fichaExistente.id }, data: dataFicha })
+        } else {
+          ficha = await prisma.fichaHogar.create({ data: dataFicha })
+        }
+        fichasActualizadas++
+
+        // ── 4. Integrantes ───────────────────────────────────────────
+        for (const int of integrantes) {
+          const doc = get(int, 'nroDocumento', 'documento', 'nrodocumento')
+          if (!doc) continue
+
+          const nombres = (get(int, 'nombres').trim() || get(int, 'primerNombre', 'primernombre')).toUpperCase()
+          const apellidos = (get(int, 'apellidos').trim() || get(int, 'primerApellido', 'primerapellido')).toUpperCase()
+          const tipoDoc = (get(int, 'tipoDocumento', 'tipodocumento', 'tipoDoc') || 'CC').toUpperCase()
+
+          // Sexo lookup
+          let sexoRaw = get(int, 'sexo').trim().toUpperCase()
+          let sexo = getLabelId(SEXO, sexoRaw) || 'HOMBRE'
+
+          // Regimen lookup
+          let regimenRaw = get(int, 'regimen').trim().toUpperCase()
+          let regimen = getLabelId(REGIMEN_SALUD, regimenRaw) || regimenRaw || null
+
+          // Fecha nacimiento
+          let fechaNacimiento = '1900-01-01'
+          const rawFN = get(int, 'fechaNacimiento', 'fechanacimiento')
+          if (rawFN) {
+            let fn = rawFN.split(' ')[0]
+            if (fn.includes('/')) {
+              const parts = fn.split('/')
+              if (parts.length === 3) {
+                fn = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`
+              }
+            }
+            const parsedFN = new Date(fn)
+            if (!isNaN(parsedFN.getTime())) fechaNacimiento = fn
+          }
+
+          const dataInt = {
+            nombres,
+            apellidos,
+            tipoDoc,
+            sexo,
+            fechaNacimiento,
+            telefono: get(int, 'telefono') || undefined,
+            parentesco: safeInt(get(int, 'rolEnLaFamilia', 'parentesco'), PARENTESCO) || 1,
+            peso: safeFloat(get(int, 'peso')),
+            talla: safeFloat(get(int, 'talla')),
+            perimetroBraquial: safeFloat(get(int, 'perimetroBraquial', 'perimetrobraquial')),
+            eapb: get(int, 'eapb') || null,
+            gestante: getBoolean(get(int, 'gestantes', 'gestante')) ? 'SI' : 'NO',
+            mesesGestacion: safeFloat(get(int, 'mesesGestacion', 'mesesgestacion')),
+            generoIdentidad: get(int, 'generoIdentidad', 'genero') || undefined,
+            nivelEducativo: safeInt(get(int, 'nivelEducativo', 'niveleducativo'), NIVEL_EDUCATIVO),
+            ocupacion: safeInt(get(int, 'ocupacion'), OCUPACION),
+            regimen,
+            etnia: safeInt(get(int, 'etnia'), ETNIA),
+            puebloIndigena: get(int, 'pueblo indigena', 'puebloindigena') || null,
+            grupoPoblacional: safeIntArray(get(int, 'grupo poblacional', 'grupopoblacional'), GRUPO_POBLACIONAL),
+            discapacidades: safeIntArray(get(int, 'discapacidad'), DISCAPACIDADES),
+            diagNutricional: safeInt(get(int, 'diagNutricional', 'diagnutricional'), DIAGNOSTICO_NUTRICIONAL),
+            practicaDeportiva: getBoolean(get(int, 'practicaDeportiva', 'practicadeportiva')),
+            lactanciaMaterna: getBoolean(get(int, 'lactanciaMaterna', 'lactanciamaterna')),
+            lactanciaMeses: safeInt(get(int, 'lactanciaMeses', 'lactanciameses')),
+            esquemaAtenciones: getBoolean(get(int, 'esquemaAtenciones', 'esquemaatenciones')),
+            esquemaVacunacion: getBoolean(get(int, 'esquemaVacunacion', 'esquemavacunacion')),
+            intervencionesPendientes: safeIntArray(get(int, 'intervencionesPendientes', 'intervencionespendientes'), INTERVENCIONES_PENDIENTES),
+            enfermedadAguda: getBoolean(get(int, 'enfermedadAguda', 'enfermedadaguda')),
+            recibeAtencionMedica: getBoolean(get(int, 'recibeAtencionMedica', 'recibeatencionmedica')),
+            remisiones: safeIntArray(get(int, 'remisiones'), REMISIONES_SISTEMA).map(String),
+            antecedentes: safeIntArray(get(int, 'antecedentesCronicos', 'antecedentes'), ANTECEDENTES_CRONICOS),
+            antecTransmisibles: safeIntArray(get(int, 'antecedentesTransmisibles', 'antectransmisibles'), ANTECEDENTES_TRANSMISIBLES),
+            barrerasAccesoOtro: get(int, 'barrerasAccesoOtro', 'barrerasaccesootro') || null,
+            otrosJson: {
+              grupoPoblacionalOtro: get(int, 'grupoPoblacionalOtro', 'grupopoblacionalotro') || null,
+              discapacidadesOtro: get(int, 'discapacidadesOtro', 'discapacidadesotro') || null,
+              antecedentesOtro: get(int, 'antecedentesOtro', 'antecedentesotro') || null,
+              antecTransmisiblesOtro: get(int, 'antecTransmisiblesOtro', 'antectransmisiblesotro') || null,
+            },
+            fichaId: ficha.id,
+          }
+
+          await prisma.paciente.upsert({
+            where: { documento: doc },
+            update: dataInt,
+            create: { documento: doc, ...dataInt }
+          })
+          integrantesActualizados++
+        }
+
+      } catch (e: any) {
+        console.error('Import error row:', h._line, e.message)
+        errors.push(`Error fila ${h._line}: ${e.message}`)
+      }
+    }
+
+    return NextResponse.json({
+      imported: fichasActualizadas,
+      integrantes: integrantesActualizados,
+      message: `✅ ${fichasActualizadas} fichas y ${integrantesActualizados} integrantes importados/actualizados.`,
+      errors: errors.length > 0 ? errors.slice(0, 50) : null
+    })
+
+  } catch (error: any) {
+    console.error('IMPORT FATAL:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
