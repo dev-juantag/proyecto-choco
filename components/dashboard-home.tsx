@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { TERRITORIOS } from "@/lib/constants"
 import {
@@ -47,6 +47,10 @@ import { fetcher } from "@/lib/fetcher"
 
 export function DashboardHome() {
   const { user, isAdmin, isFacturador } = useAuth()
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   // Helper para convertir fechas a fecha local consistente
   const getLocalDateString = (d: Date | string) => {
     if (!d) return "";
@@ -475,7 +479,7 @@ export function DashboardHome() {
 
   const kpis = getKpis()
 
-  if (loading) {
+  if (loading || !isMounted) {
     return (
       <div className="flex w-full items-center justify-center p-8 text-muted-foreground text-sm">
         Cargando panel de resumen...

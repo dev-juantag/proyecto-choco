@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 import { useAuth } from "@/lib/auth-context"
 import useSWR from "swr"
@@ -44,6 +44,16 @@ export function Dashboard() {
   const { user, logout, isAdmin, isFacturador } = useAuth()
   const [activeView, setActiveView] = useState<View>("inicio")
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  useEffect(() => {
+    // Precargar chunks críticos mientras esté en línea para asegurar su disponibilidad offline
+    if (typeof window !== "undefined" && navigator.onLine) {
+      import("@/components/identificaciones-module").catch(() => {});
+      import("@/components/atenciones-module").catch(() => {});
+      import("@/components/mi-territorio-module").catch(() => {});
+      import("@/components/ui/MapLocationPickerClient").catch(() => {});
+    }
+  }, [])
 
   const { data: rawProgramas } = useSWR("/api/programas", fetcher)
   const programas = Array.isArray(rawProgramas) ? rawProgramas : []
