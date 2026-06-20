@@ -56,14 +56,50 @@ export async function POST(req: Request) {
     }
     // ---------------------------------------
 
+    // --- LÓGICA DE FUERZA BRUTA ---
+    if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+      const minutosFaltantes = Math.ceil((new Date(user.lockedUntil).getTime() - Date.now()) / 60000)
+      return NextResponse.json(
+        { error: `Cuenta bloqueada temporalmente por demasiados intentos fallidos. Intente de nuevo en ${minutosFaltantes} minutos.` },
+        { status: 429 }
+      )
+    }
+
     const passwordMatch = await bcrypt.compare(password, user.password)
 
     if (!passwordMatch) {
+      const intentos = (user.failedLoginAttempts || 0) + 1
+      let lockedUntil = user.lockedUntil
+      
+      if (intentos >= 5) {
+        lockedUntil = new Date(Date.now() + 15 * 60 * 1000) // 15 minutos
+      }
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts: intentos >= 5 ? 0 : intentos,
+          lockedUntil: lockedUntil
+        }
+      })
+
       return NextResponse.json(
-        { error: "Contraseña incorrecta" },
+        { error: intentos >= 5 
+            ? "Demasiados intentos fallidos. Cuenta bloqueada por 15 minutos." 
+            : `Contraseña incorrecta. Intento ${intentos} de 5.` 
+        },
         { status: 401 }
       )
     }
+
+    // Si entra con éxito, reiniciamos el contador
+    if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: 0, lockedUntil: null }
+      })
+    }
+    // ---------------------------------------
 
     const token = jwt.sign(
       { 

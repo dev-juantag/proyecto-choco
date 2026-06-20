@@ -72,7 +72,7 @@ export function Dashboard() {
     navItems.push({ id: "atenciones", label: isFacturador ? "Facturaciones" : "Atenciones", icon: <ClipboardList className="h-5 w-5" /> })
   }
   
-  if (userRol === "superadmin") {
+  if (userRol === "superadmin" || userRol === "admin" || userRol === "auxiliar") {
     navItems.push({ id: "identificaciones", label: "Identificaciones", icon: <Database className="h-5 w-5" /> })
   }
 
