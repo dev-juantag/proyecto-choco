@@ -14,7 +14,7 @@ import {
 import { verifyToken } from '@/lib/verify-token'
 
 const cleanCsv = (val: any, isNumber = false) => {
-  if (val === null || val === undefined || val === '') return '""'
+  if (val === null || val === undefined || val === '') return '"NULL"'
   let str = String(val).replace(/"/g, '""').replace(/\n/g, ' ').replace(/\r/g, '')
   if (isNumber && (typeof val === 'number' || !isNaN(parseFloat(str)))) {
     str = str.replace('.', ',')
@@ -41,7 +41,7 @@ const getLabel = (arr: any[], id: any) => {
 }
 const getLabels = (arr: any[], ids: any) => {
   const finalIds = safeParseJsonArray(ids)
-  if (!finalIds || finalIds.length === 0) return '""'
+  if (!finalIds || finalIds.length === 0) return '"NULL"'
   return `"${finalIds.map(id => getLabel(arr, id)).join(', ')}"`
 }
 
@@ -117,8 +117,8 @@ export async function GET(request: Request) {
       // FAMILIA
       'tipoFamilia', 'numIntegrantes', 'apgar', 'apgar_P1', 'apgar_P2', 'apgar_P3', 'apgar_P4', 'apgar_P5', 'ecomapa', 'cuidadorPrincipal', 'zarit', 'vulnerabilidades',
       // INTEGRANTES
-      'pacienteId', 'nombres', 'apellidos', 'tipoDoc', 'documento', 'fechaNacimiento', 'sexo',
-      'generoIdentidad', 'parentesco', 'gestante', 'mesesGestacion', 'telefono', 'nivelEducativo',
+      'pacienteId', 'nombres', 'apellidos', 'tipoDoc', 'documento', 'fechaNacimiento', 'genero',
+      'parentesco', 'gestante', 'mesesGestacion', 'telefono', 'nivelEducativo',
       'ocupacion', 'regimen', 'eapb', 'etnia', 'puebloIndigena', 'grupoPoblacional', 'grupoPoblacionalOtro', 'discapacidades', 'discapacidadesOtro', 'barrerasAccesoOtro',
       'peso', 'talla', 'perimetroBraquial', 'diagNutricional', 'practicaDeportiva', 'lactanciaMaterna',
       'lactanciaMeses', 'esquemaAtenciones', 'esquemaVacunacion', 'intervencionesPendientes',
@@ -191,7 +191,7 @@ export async function GET(request: Request) {
       ]
 
       if (!f.pacientes || f.pacientes.length === 0) {
-         const emptyPatientCols = Array(35).fill('""');
+         const emptyPatientCols = Array(34).fill('"NULL"');
          rows.push([...baseRowData, ...emptyPatientCols].join(';'))
       } else {
          f.pacientes.forEach((p: any) => {
@@ -203,7 +203,6 @@ export async function GET(request: Request) {
               cleanCsv(p.documento),
               cleanCsv(p.fechaNacimiento),
               cleanCsv(getLabel(SEXO, p.sexo)),
-              cleanCsv(p.generoIdentidad),
               cleanCsv(getLabel(PARENTESCO, p.parentesco)),
               cleanCsv(p.gestante),
               cleanCsv(p.mesesGestacion, true),

@@ -10,8 +10,10 @@ import {
 import { inp, sel, lbl, lblStyle, required as reqStyle, chk, chkLabel, btnGreen, btnGreenStyle } from './wizardStyles'
 import { F, Multi } from './wizardComponents'
 
+import { useEffect } from 'react'
+
 const defaultIntegrante = {
-  primerNombre: '', segundoNombre: '', primerApellido: '', segundoApellido: '',
+  nombres: '', apellidos: '', datosDesconocidos: false,
   tipoDoc: 'CC', numDoc: '', fechaNacimiento: '', parentesco: '', sexo: '', gestante: 'NA', mesesGestacion: '',
   telefono: '', nivelEducativo: '', ocupacion: '', regimen: '', eapb: '',
   etnia: '', puebloIndigena: '', grupoPoblacional: [] as number[], discapacidades: [] as number[],
@@ -31,6 +33,18 @@ export default function Step4Integrantes() {
   const { register, control, watch, setValue } = useFormContext()
   const { fields, append, remove } = useFieldArray({ control, name: 'integrantes' })
   const [expanded, setExpanded] = useState<number[]>([0])
+
+  const numIntegrantes = watch('numIntegrantes')
+  
+  useEffect(() => {
+    const requiredCount = parseInt(numIntegrantes) || 1
+    if (fields.length < requiredCount) {
+      const itemsToAdd = requiredCount - fields.length
+      for (let i = 0; i < itemsToAdd; i++) {
+        append(defaultIntegrante)
+      }
+    }
+  }, [numIntegrantes, fields.length, append])
 
   const toggle = (i: number) => setExpanded(prev =>
     prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]
@@ -75,11 +89,14 @@ export default function Step4Integrantes() {
                 </div>
                 <div>
                   <p className="font-semibold text-xs text-gray-800">
-                    {watch(`integrantes.${i}.primerNombre`) || 'Nuevo'}{' '}
-                    {watch(`integrantes.${i}.primerApellido`) || 'Integrante'}
+                    {watch(`integrantes.${i}.nombres`) || 'Nuevo'}{' '}
+                    {watch(`integrantes.${i}.apellidos`) || 'Integrante'}
                   </p>
-                  {edad !== null && (
+                  {edad !== null && !watch(`integrantes.${i}.datosDesconocidos`) && (
                     <p className="text-[10px] text-gray-400">{edad} años · {cursoVida}</p>
+                  )}
+                  {watch(`integrantes.${i}.datosDesconocidos`) && (
+                    <p className="text-[10px] text-orange-500 font-bold">Datos parciales</p>
                   )}
                 </div>
               </div>
@@ -102,172 +119,239 @@ export default function Step4Integrantes() {
             {/* Body */}
             {open && (
               <div className="p-4 space-y-4 bg-white">
+                {/* Checkbox de datos desconocidos */}
+                <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+                  <input 
+                    type="checkbox" 
+                    {...register(`integrantes.${i}.datosDesconocidos`)} 
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      register(`integrantes.${i}.datosDesconocidos`).onChange(e);
+                      if (checked) {
+                        setValue(`integrantes.${i}.nombres`, 'Sin identificar');
+                        setValue(`integrantes.${i}.apellidos`, 'Sin identificar');
+                        setValue(`integrantes.${i}.tipoDoc`, 'NN');
+                        setValue(`integrantes.${i}.numDoc`, `SD-${Date.now().toString().slice(-6)}`);
+                        setValue(`integrantes.${i}.fechaNacimiento`, '');
+                        setValue(`integrantes.${i}.sexo`, 'INDETERMINADO');
+                      } else {
+                        setValue(`integrantes.${i}.tipoDoc`, 'CC');
+                        setValue(`integrantes.${i}.numDoc`, '');
+                        setValue(`integrantes.${i}.fechaNacimiento`, '');
+                        setValue(`integrantes.${i}.sexo`, '');
+                      }
+                    }}
+                    id={`desc-${i}`}
+                    className="w-4 h-4 text-[#0a8c32] rounded border-gray-300 focus:ring-[#0a8c32]"
+                  />
+                  <label htmlFor={`desc-${i}`} className="text-sm font-semibold text-orange-600">
+                    No tengo toda la información personal de este integrante
+                  </label>
+                </div>
+
                 {/* Datos básicos */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <F label="Primer Nombre" required><input {...register(`integrantes.${i}.primerNombre`)} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ\s]/g, '').replace(/(^|\s)\S/g, c => c.toUpperCase()); register(`integrantes.${i}.primerNombre`).onChange(e); }} className={inp} /></F>
-                  <F label="Segundo Nombre"><input {...register(`integrantes.${i}.segundoNombre`)} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ\s]/g, '').replace(/(^|\s)\S/g, c => c.toUpperCase()); register(`integrantes.${i}.segundoNombre`).onChange(e); }} className={inp} /></F>
-                  <F label="Primer Apellido" required><input {...register(`integrantes.${i}.primerApellido`)} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ\s]/g, '').replace(/(^|\s)\S/g, c => c.toUpperCase()); register(`integrantes.${i}.primerApellido`).onChange(e); }} className={inp} /></F>
-                  <F label="Segundo Apellido" required><input {...register(`integrantes.${i}.segundoApellido`)} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ\s]/g, '').replace(/(^|\s)\S/g, c => c.toUpperCase()); register(`integrantes.${i}.segundoApellido`).onChange(e); }} className={inp} /></F>
-                  <F label="Tipo Doc." required>
-                    <select {...register(`integrantes.${i}.tipoDoc`)} className={sel}>
+                  <F label="Tipo Doc." required={!watch(`integrantes.${i}.datosDesconocidos`)}>
+                    <select {...register(`integrantes.${i}.tipoDoc`)} disabled={watch(`integrantes.${i}.datosDesconocidos`)} className={sel}>
                       <option value="">— Selecciona —</option>
                       {TIPO_DOCUMENTO.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
                     </select>
                   </F>
-                  <F label="N° Documento" required><input {...register(`integrantes.${i}.numDoc`)} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, ''); register(`integrantes.${i}.numDoc`).onChange(e); }} minLength={7} className={inp} /></F>
-                  <F label="Fecha de Nacimiento" required>
-                    <input type="date" min={new Date(new Date().setFullYear(new Date().getFullYear() - 100)).toISOString().split('T')[0]} max={new Date().toISOString().split('T')[0]} {...register(`integrantes.${i}.fechaNacimiento`)} className={inp} />
+                  <F label="N° Documento" required={!watch(`integrantes.${i}.datosDesconocidos`)}>
+                    <input {...register(`integrantes.${i}.numDoc`)} disabled={watch(`integrantes.${i}.datosDesconocidos`)} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9a-zA-Z-]/g, ''); register(`integrantes.${i}.numDoc`).onChange(e); }} minLength={3} className={inp} />
                   </F>
-                  <F label="Edad y Curso de Vida">
-                    <input
-                      type="text"
-                      className={`${inp} bg-gray-100 cursor-not-allowed font-bold text-[#0a8c32]`}
-                      value={edad !== null ? `${edad} años · ${cursoVida}` : ''}
-                      disabled
-                      placeholder="Autocalculado"
-                    />
+                  <F label="Nombres" required>
+                    <input {...register(`integrantes.${i}.nombres`)} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ\s]/g, '').replace(/(^|\s)\S/g, c => c.toUpperCase()); register(`integrantes.${i}.nombres`).onChange(e); }} className={inp} placeholder="Nombres Completos" />
                   </F>
+                  <F label="Apellidos" required>
+                    <input {...register(`integrantes.${i}.apellidos`)} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ\s]/g, '').replace(/(^|\s)\S/g, c => c.toUpperCase()); register(`integrantes.${i}.apellidos`).onChange(e); }} className={inp} placeholder="Apellidos Completos" />
+                  </F>
+                  {!watch(`integrantes.${i}.datosDesconocidos`) ? (
+                    <>
+                      <F label="Fecha de Nacimiento" required>
+                        <input type="date" min={new Date(new Date().setFullYear(new Date().getFullYear() - 100)).toISOString().split('T')[0]} max={new Date().toISOString().split('T')[0]} {...register(`integrantes.${i}.fechaNacimiento`)} className={inp} />
+                      </F>
+                      <F label="Edad y Curso de Vida">
+                        <input
+                          type="text"
+                          className={`${inp} bg-gray-100 cursor-not-allowed font-bold text-[#0a8c32]`}
+                          value={edad !== null ? `${edad} años · ${cursoVida}` : ''}
+                          disabled
+                          placeholder="Autocalculado"
+                        />
+                      </F>
+                    </>
+                  ) : (
+                    <F label="Edad Aproximada (Años)" required>
+                      <input 
+                        type="number" 
+                        min={0}
+                        max={120}
+                        className={inp} 
+                        placeholder="Ej. 35"
+                        defaultValue={edad !== null ? edad : ''}
+                        onChange={(e) => {
+                          const ageVal = parseInt(e.target.value);
+                          if (!isNaN(ageVal)) {
+                            const currentYear = new Date().getFullYear();
+                            setValue(`integrantes.${i}.fechaNacimiento`, `${currentYear - ageVal}-01-01`);
+                          } else {
+                            setValue(`integrantes.${i}.fechaNacimiento`, '');
+                          }
+                        }}
+                      />
+                    </F>
+                  )}
                   <F label="Parentesco" required>
                     <select {...register(`integrantes.${i}.parentesco`)} className={sel}>
                       <option value="">— Selecciona —</option>
                       {PARENTESCO.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
                     </select>
                   </F>
-                  <F label="Género" required>
-                    <select {...register(`integrantes.${i}.sexo`)} onChange={(e) => { register(`integrantes.${i}.sexo`).onChange(e); if (e.target.value === 'HOMBRE') setValue(`integrantes.${i}.gestante`, 'NA'); }} className={sel}>
-                      <option value="">— Selecciona —</option>
-                      {SEXO.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-                    </select>
-                  </F>
-                  <F label="Gestante">
-                    <select {...register(`integrantes.${i}.gestante` as const)} onChange={(e) => { register(`integrantes.${i}.gestante`).onChange(e); if (e.target.value !== 'SI') setValue(`integrantes.${i}.mesesGestacion`, null); }} className={sel}>
-                      {sexo === 'HOMBRE' ? (
-                        <option value="NA">NO APLICA</option>
-                      ) : sexo === 'INDETERMINADO' ? (
-                        <>
-                          <option value="NA">NO APLICA</option>
-                          <option value="SI">Sí</option>
-                          <option value="NO">No</option>
-                        </>
-                      ) : (
-                        <>
+                  {!watch(`integrantes.${i}.datosDesconocidos`) && (
+                    <>
+                      <F label="Género" required>
+                        <select {...register(`integrantes.${i}.sexo`)} onChange={(e) => { register(`integrantes.${i}.sexo`).onChange(e); if (e.target.value === 'HOMBRE') setValue(`integrantes.${i}.gestante`, 'NA'); }} className={sel}>
                           <option value="">— Selecciona —</option>
-                          <option value="SI">Sí</option>
-                          <option value="NO">No</option>
-                          <option value="En duda">En duda</option>
-                        </>
+                          {SEXO.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+                          <option value="INDETERMINADO">Indeterminado</option>
+                        </select>
+                      </F>
+                      <F label="Gestante">
+                        <select {...register(`integrantes.${i}.gestante` as const)} onChange={(e) => { register(`integrantes.${i}.gestante`).onChange(e); if (e.target.value !== 'SI') setValue(`integrantes.${i}.mesesGestacion`, null); }} className={sel}>
+                          {sexo === 'HOMBRE' ? (
+                            <option value="NA">NO APLICA</option>
+                          ) : sexo === 'INDETERMINADO' ? (
+                            <>
+                              <option value="NA">NO APLICA</option>
+                              <option value="SI">Sí</option>
+                              <option value="NO">No</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="">— Selecciona —</option>
+                              <option value="SI">Sí</option>
+                              <option value="NO">No</option>
+                              <option value="En duda">En duda</option>
+                            </>
+                          )}
+                        </select>
+                      </F>
+                      {gestanteStatus === 'SI' && (
+                        <F label="Meses de Gestante" required>
+                          <select {...register(`integrantes.${i}.mesesGestacion`, { valueAsNumber: true })} className={sel}>
+                            <option value="">— Selecciona —</option>
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(m => (
+                              <option key={m} value={m}>{m} {m === 1 ? 'mes' : 'meses'}</option>
+                            ))}
+                          </select>
+                        </F>
                       )}
-                    </select>
-                  </F>
-                  {gestanteStatus === 'SI' && (
-                    <F label="Meses de Gestante" required>
-                      <select {...register(`integrantes.${i}.mesesGestacion`, { valueAsNumber: true })} className={sel}>
-                        <option value="">— Selecciona —</option>
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(m => (
-                          <option key={m} value={m}>{m} {m === 1 ? 'mes' : 'meses'}</option>
-                        ))}
-                      </select>
-                    </F>
+                      <F label="Teléfono" required>
+                        <input type="tel" {...register(`integrantes.${i}.telefono`)} onInput={(e) => { let val = e.currentTarget.value.replace(/[^0-9]/g, ''); if (val.length > 0 && val[0] !== '3') val = '3' + val.substring(1); if (val.length > 10) val = val.substring(0, 10); e.currentTarget.value = val; register(`integrantes.${i}.telefono`).onChange(e); }} minLength={10} maxLength={10} className={inp} placeholder="3XX XXX XXXX" />
+                      </F>
+                    </>
                   )}
-                  <F label="Teléfono" required>
-                    <input type="tel" {...register(`integrantes.${i}.telefono`)} onInput={(e) => { let val = e.currentTarget.value.replace(/[^0-9]/g, ''); if (val.length > 0 && val[0] !== '3') val = '3' + val.substring(1); if (val.length > 10) val = val.substring(0, 10); e.currentTarget.value = val; register(`integrantes.${i}.telefono`).onChange(e); }} minLength={10} maxLength={10} className={inp} placeholder="3XX XXX XXXX" />
-                  </F>
                 </div>
 
-                {/* Educación y Afiliación */}
-                <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#081e6966', borderTop: '1px solid #e8ecf5', paddingTop: '10px' }}>
-                  Educación y Afiliación
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <F label="Nivel Educativo">
-                    <select {...register(`integrantes.${i}.nivelEducativo`)} className={sel}>
-                      <option value="">— Selecciona —</option>
-                      {NIVEL_EDUCATIVO.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-                    </select>
-                  </F>
-                  <F label="Ocupación">
-                    <select {...register(`integrantes.${i}.ocupacion`)} className={sel}>
-                      <option value="">— Selecciona —</option>
-                      {OCUPACION.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-                    </select>
-                  </F>
-                  <F label="Régimen de Salud">
-                    <select {...register(`integrantes.${i}.regimen`)} className={sel}>
-                      <option value="">— Selecciona —</option>
-                      {REGIMEN_SALUD.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-                    </select>
-                  </F>
-                  <F label="EAPB / EPS">
-                    <input {...register(`integrantes.${i}.eapb`)} list="eps-list" placeholder="Escriba o elija EPS..." className={inp} />
-                    <datalist id="eps-list">
-                      <option value="Nueva EPS" />
-                      <option value="EPS Sanitas" />
-                      <option value="EPS Sura" />
-                      <option value="Salud Total EPS" />
-                      <option value="Compensar EPS" />
-                      <option value="Famisanar EPS" />
-                      <option value="Servicio Occidental de Salud (S.O.S)" />
-                      <option value="Aliansalud EPS" />
-                      
-                      <option value="Coosalud EPS" />
-                      <option value="Mutual Ser EPS" />
-                      <option value="Asmet Salud EPS" />
-                      <option value="Emssanar EPS" />
-                      <option value="Capital Salud EPS" />
-                      <option value="Savia Salud EPS" />
-                      <option value="Cajacopi EPS" />
-                      <option value="Comfenalco Valle EPS" />
-                      <option value="Comfaoriente" />
-                      
-                      <option value="Anas Wayuu EPSI" />
-                      <option value="Mallamas EPSI" />
-                      <option value="Pijaos Salud EPSI" />
-                      <option value="Asociación Indígena del Cauca (AIC EPSI)" />
-                      <option value="Dusakawi EPSI" />
-                      
-                      <option value="Fuerzas Militares y Policía Nacional" />
-                      <option value="Fomag" />
-                      <option value="Ecopetrol" />
-                      <option value="Universidades Públicas" />
-                    </datalist>
-                  </F>
-                </div>
+                {!watch(`integrantes.${i}.datosDesconocidos`) && (
+                  <>
+                    {/* Educación y Afiliación */}
+                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#081e6966', borderTop: '1px solid #e8ecf5', paddingTop: '10px' }}>
+                      Educación y Afiliación
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <F label="Nivel Educativo">
+                        <select {...register(`integrantes.${i}.nivelEducativo`)} className={sel}>
+                          <option value="">— Selecciona —</option>
+                          {NIVEL_EDUCATIVO.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+                        </select>
+                      </F>
+                      <F label="Ocupación">
+                        <select {...register(`integrantes.${i}.ocupacion`)} className={sel}>
+                          <option value="">— Selecciona —</option>
+                          {OCUPACION.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+                        </select>
+                      </F>
+                      <F label="Régimen de Salud">
+                        <select {...register(`integrantes.${i}.regimen`)} className={sel}>
+                          <option value="">— Selecciona —</option>
+                          {REGIMEN_SALUD.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+                        </select>
+                      </F>
+                      <F label="EAPB / EPS">
+                        <input {...register(`integrantes.${i}.eapb`)} list="eps-list" placeholder="Escriba o elija EPS..." className={inp} />
+                        <datalist id="eps-list">
+                          <option value="Nueva EPS" />
+                          <option value="EPS Sanitas" />
+                          <option value="EPS Sura" />
+                          <option value="Salud Total EPS" />
+                          <option value="Compensar EPS" />
+                          <option value="Famisanar EPS" />
+                          <option value="Servicio Occidental de Salud (S.O.S)" />
+                          <option value="Aliansalud EPS" />
+                          
+                          <option value="Coosalud EPS" />
+                          <option value="Mutual Ser EPS" />
+                          <option value="Asmet Salud EPS" />
+                          <option value="Emssanar EPS" />
+                          <option value="Capital Salud EPS" />
+                          <option value="Savia Salud EPS" />
+                          <option value="Cajacopi EPS" />
+                          <option value="Comfenalco Valle EPS" />
+                          <option value="Comfaoriente" />
+                          
+                          <option value="Anas Wayuu EPSI" />
+                          <option value="Mallamas EPSI" />
+                          <option value="Pijaos Salud EPSI" />
+                          <option value="Asociación Indígena del Cauca (AIC EPSI)" />
+                          <option value="Dusakawi EPSI" />
+                          
+                          <option value="Fuerzas Militares y Policía Nacional" />
+                          <option value="Fomag" />
+                          <option value="Ecopetrol" />
+                          <option value="Universidades Públicas" />
+                        </datalist>
+                      </F>
+                    </div>
 
-                {/* Enfoque diferencial */}
-                <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#081e6966', borderTop: '1px solid #e8ecf5', paddingTop: '10px' }}>
-                  Enfoque Diferencial
-                </p>
-                <div className="space-y-2.5">
-                  <F label="Pertenencia Étnica">
-                    <select {...register(`integrantes.${i}.etnia`)} className={sel}>
-                      <option value="">— Selecciona —</option>
-                      {ETNIA.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-                    </select>
-                  </F>
-                  {String(etnia) === '1' && (
-                    <F label="Pueblo Indígena">
-                      <input {...register(`integrantes.${i}.puebloIndigena`)} className={inp} placeholder="Nombre del pueblo" />
-                    </F>
-                  )}
-                  <Multi 
-                    label="Grupo Pob. Especial Protección (múltiple)" 
-                    options={GRUPO_POBLACIONAL} 
-                    name={`integrantes.${i}.grupoPoblacional`} 
-                    register={register} 
-                  />
-                  <Multi 
-                    label="Barreras de Acceso (múltiple)" 
-                    options={BARRERAS_ACCESO} 
-                    name={`integrantes.${i}.barrerasAcceso`} 
-                    register={register} 
-                  />
-                  <Multi 
-                    label="Discapacidades (múltiple)" 
-                    options={DISCAPACIDADES} 
-                    name={`integrantes.${i}.discapacidades`} 
-                    register={register} 
-                  />
-                </div>
+                    {/* Enfoque diferencial */}
+                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#081e6966', borderTop: '1px solid #e8ecf5', paddingTop: '10px' }}>
+                      Enfoque Diferencial
+                    </p>
+                    <div className="space-y-2.5">
+                      <F label="Pertenencia Étnica">
+                        <select {...register(`integrantes.${i}.etnia`)} className={sel}>
+                          <option value="">— Selecciona —</option>
+                          {ETNIA.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+                        </select>
+                      </F>
+                      {String(etnia) === '1' && (
+                        <F label="Pueblo Indígena">
+                          <input {...register(`integrantes.${i}.puebloIndigena`)} className={inp} placeholder="Nombre del pueblo" />
+                        </F>
+                      )}
+                      <Multi 
+                        label="Grupo Pob. Especial Protección (múltiple)" 
+                        options={GRUPO_POBLACIONAL} 
+                        name={`integrantes.${i}.grupoPoblacional`} 
+                        register={register} 
+                      />
+                      <Multi 
+                        label="Barreras de Acceso (múltiple)" 
+                        options={BARRERAS_ACCESO} 
+                        name={`integrantes.${i}.barrerasAcceso`} 
+                        register={register} 
+                      />
+                      <Multi 
+                        label="Discapacidades (múltiple)" 
+                        options={DISCAPACIDADES} 
+                        name={`integrantes.${i}.discapacidades`} 
+                        register={register} 
+                      />
+                    </div>
+                  </>
+                )}
 
               </div>
             )}

@@ -20,7 +20,7 @@ export function generateFamiliogramaAutoLayout(integrantes: any[]): string {
     nodes.push({
       id: int.numDoc || `member-${index}`,
       data: {
-        label: `${int.primerNombre || ''} ${int.primerApellido || ''}`.trim(),
+        label: `${int.nombres || ''} ${int.apellidos || ''}`.trim(),
         sexo: int.sexo || "HOMBRE",
         parentesco: int.parentesco || "1",
         age: 30 // dummy age fallback

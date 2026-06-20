@@ -72,7 +72,7 @@ export function Dashboard() {
     navItems.push({ id: "atenciones", label: isFacturador ? "Facturaciones" : "Atenciones", icon: <ClipboardList className="h-5 w-5" /> })
   }
   
-  if (userRol === "auxiliar" || userRol === "profesional" || isAdmin) {
+  if (userRol === "superadmin") {
     navItems.push({ id: "identificaciones", label: "Identificaciones", icon: <Database className="h-5 w-5" /> })
   }
 
@@ -236,7 +236,7 @@ export function Dashboard() {
               <span className="text-[11px] capitalize text-sidebar-foreground/60">
                 {user?.rol?.toLowerCase() === 'profesional' 
                   ? `Profesional en ${programas.find((p: any) => String(p.id) === String(user.programaId))?.nombre || '...'}`
-                  : user?.rol}
+                  : user?.rol?.toLowerCase()}
               </span>
             </div>
           </div>
@@ -270,7 +270,7 @@ export function Dashboard() {
               <p className="text-[11px] text-muted-foreground capitalize">
                 {user?.rol?.toLowerCase() === 'profesional' 
                   ? `Profesional en ${programas.find((p: any) => String(p.id) === String(user.programaId))?.nombre || '...'}`
-                  : user?.rol}
+                  : user?.rol?.toLowerCase()}
               </p>
             </div>
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground shrink-0 shadow-sm">

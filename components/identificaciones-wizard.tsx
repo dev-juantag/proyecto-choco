@@ -344,28 +344,52 @@ export function IdentificacionesWizard({
       const url = existingFicha ? `/api/identificaciones/${existingFicha.id}` : "/api/identificaciones"
 
       const token = localStorage.getItem("gestion-poblacional-token") || ""
+      const fullPayload = { 
+        ...payload, 
+        coords, 
+        territorio: territorioId, 
+        encuestadorId: user?.id,
+        userId: user?.id,
+        encuestadorNombreRaw: user ? `${user.nombre} ${user.apellidos}`.trim() : null
+      }
 
-      const response = await fetch(url, {
-        method,
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({ 
-          ...payload, 
-          coords, 
-          territorio: territorioId, 
-          encuestadorId: user?.id,
-          userId: user?.id,
-          encuestadorNombreRaw: user ? `${user.nombre} ${user.apellidos}`.trim() : null
-        }),
-      })
-      const result = await response.json()
-      if (result.success) {
-        setSavedId(result.id)
+      // 1. Guardado explícito sin conexión
+      if (!navigator.onLine) {
+        const { SyncManager } = await import('@/lib/sync-manager')
+        await SyncManager.enqueue('FICHA_HOGAR', method === 'PUT' ? 'UPDATE' : 'CREATE', fullPayload)
+        setSavedId(existingFicha?.id || `local-${Date.now()}`)
         setSaved(true)
-      } else {
-        throw new Error(result.error || "Error al guardar la información")
+        setSaving(false)
+        return
+      }
+
+      // 2. Intento de guardado en línea
+      try {
+        const response = await fetch(url, {
+          method,
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify(fullPayload),
+        })
+        const result = await response.json()
+        if (result.success) {
+          setSavedId(result.id)
+          setSaved(true)
+        } else {
+          throw new Error(result.error || "Error al guardar la información")
+        }
+      } catch (fetchErr: any) {
+        // Fallback: Si falla la red (TypeError: failed to fetch), lo encolamos
+        if (fetchErr.name === 'TypeError' || fetchErr.message?.toLowerCase().includes('fetch')) {
+          const { SyncManager } = await import('@/lib/sync-manager')
+          await SyncManager.enqueue('FICHA_HOGAR', method === 'PUT' ? 'UPDATE' : 'CREATE', fullPayload)
+          setSavedId(existingFicha?.id || `local-${Date.now()}`)
+          setSaved(true)
+        } else {
+          throw fetchErr
+        }
       }
     } catch (err: any) {
       setStepError(err.message)

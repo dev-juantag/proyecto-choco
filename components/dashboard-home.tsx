@@ -631,7 +631,7 @@ export function DashboardHome() {
               </div>
               <div className="w-full h-[320px]">
                 {(idStats?.piramide?.length || 0) > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                     <BarChart layout="vertical" data={idStats?.piramide || []} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="oklch(0.9 0.02 285)" />
                       <XAxis type="number" hide />
@@ -726,7 +726,7 @@ export function DashboardHome() {
             </div>
           ) : isFacturador ? (
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <PieChart>
                   <Pie
                     data={chartDataFacturacion}
@@ -749,7 +749,7 @@ export function DashboardHome() {
             </div>
           ) : (
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <BarChart data={(isAdmin ? chartDataAtenciones : (user?.rol === "auxiliar" || isEnfermeraJefe ? chartDataIdAuxiliar : chartDataMisAtencionesDiarias)) as any[]} margin={{ top: 5, right: 10, left: -20, bottom: 40 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.90 0.02 285)" />
                   <XAxis
@@ -794,7 +794,7 @@ export function DashboardHome() {
               </div>
             ) : (
               <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                   <BarChart data={chartDataIdentificacionesRoles} margin={{ top: 5, right: 10, left: -20, bottom: 40 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.90 0.02 285)" />
                     <XAxis

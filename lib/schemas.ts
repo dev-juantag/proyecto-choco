@@ -2,15 +2,14 @@ import { z } from "zod";
 
 export const integranteSchema = z.object({
   id: z.string().optional(),
-  primerNombre: z.string().min(1, "El primer nombre es obligatorio"),
-  segundoNombre: z.string().optional().nullable(),
-  primerApellido: z.string().min(1, "El primer apellido es obligatorio"),
-  segundoApellido: z.string().optional().nullable(),
-  tipoDoc: z.string().min(1, "Tipo de documento es obligatorio"),
-  numDoc: z.string().min(3, "Número de documento inválido"),
-  fechaNacimiento: z.string().min(1, "Fecha de nacimiento es obligatoria"),
+  nombres: z.string().optional().nullable(),
+  apellidos: z.string().optional().nullable(),
+  datosDesconocidos: z.boolean().default(false),
+  tipoDoc: z.string().optional().nullable(),
+  numDoc: z.string().optional().nullable(),
+  fechaNacimiento: z.string().optional().nullable(),
   parentesco: z.union([z.string(), z.number()]).transform(v => String(v)),
-  sexo: z.string().min(1, "El sexo es obligatorio"),
+  sexo: z.string().optional().nullable(),
   gestante: z.string().default("NA"),
   mesesGestacion: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
   telefono: z.string().optional().nullable(),
@@ -45,6 +44,35 @@ export const integranteSchema = z.object({
   enfermedadAguda: z.boolean().default(false),
   recibeAtencionMedica: z.boolean().default(false),
   remisiones: z.array(z.string()).default([]),
+}).superRefine((data, ctx) => {
+  if (!data.datosDesconocidos) {
+    if (!data.nombres || data.nombres.trim() === "") {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['nombres'], message: 'Los nombres son obligatorios' });
+    }
+    if (!data.apellidos || data.apellidos.trim() === "") {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['apellidos'], message: 'Los apellidos son obligatorios' });
+    }
+    if (!data.tipoDoc || data.tipoDoc.trim() === "") {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['tipoDoc'], message: 'El tipo de documento es obligatorio' });
+    }
+    if (!data.numDoc || data.numDoc.trim() === "") {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['numDoc'], message: 'El número de documento es obligatorio' });
+    }
+    if (!data.fechaNacimiento || data.fechaNacimiento.trim() === "") {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['fechaNacimiento'], message: 'La fecha de nacimiento es obligatoria' });
+    }
+    if (!data.sexo || data.sexo.trim() === "") {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['sexo'], message: 'El sexo es obligatorio' });
+    }
+  } else {
+    // Si datosDesconocidos es true, solo validamos nombres y apellidos (según la respuesta del usuario)
+    if (!data.nombres || data.nombres.trim() === "") {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['nombres'], message: 'Los nombres son obligatorios, incluso si no conoce los demás datos' });
+    }
+    if (!data.apellidos || data.apellidos.trim() === "") {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['apellidos'], message: 'Los apellidos son obligatorios, incluso si no conoce los demás datos' });
+    }
+  }
 });
 
 export const wizardSchema = z.object({

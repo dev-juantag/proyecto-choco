@@ -995,43 +995,42 @@ function AtencionForm({
 
   // 1. Efecto onBlur para buscar auto-rellenar paciente
   const handleDocumentoBlur = async () => {
-    if (!documentoPaciente.trim()) {
+    if (!documentoPaciente.trim() || tipoDocumento === "NN") {
       setPacienteExistente(false)
+      return
+    }
+
+    if (!navigator.onLine) {
+      // Ignorar autocompletado en offline por ahora, como acordado con el usuario
       return
     }
 
     setIsSearchingPaciente(true)
     try {
-      const res = await fetch(`/api/pacientes?documento=${documentoPaciente.trim()}`)
+      const res = await fetch(`/api/pacientes/buscar?doc=${documentoPaciente.trim()}`)
       if (res.ok) {
-        setPacienteExistente(true)
-        const paciente = await res.json()
-        setNombrePaciente(paciente.nombreCompleto)
-        
-        // Match exact strings if present in TIPO_DOCUMENTO
-        if (TIPO_DOCUMENTO.some(t => t.id === paciente.tipoDocumento || t.label === paciente.tipoDocumento)) {
-          setTipoDocumento(paciente.tipoDocumento)
-        } else {
-          setTipoDocumento(paciente.tipoDocumento || '') // set arbitrarily as it comes from API
-        }
+        const result = await res.json()
+        if (result.found) {
+          setPacienteExistente(true)
+          const paciente = result.paciente
+          setNombrePaciente(`${paciente.nombres} ${paciente.apellidos}`.trim())
+          
+          if (SEXO.some(s => s.id === paciente.genero || s.label === paciente.genero)) {
+            setGenero(paciente.genero)
+          }
 
-        // Match exact strings for SEXO
-        if (SEXO.some(s => s.id === paciente.genero || s.label === paciente.genero)) {
-          setGenero(paciente.genero)
+          setTelefono(paciente.telefono || '')
+          setDireccion(paciente.direccion || '')
+          setRegimen(paciente.regimen || '')
+          setEapb(paciente.eapb || '')
+          
+          const fechaFormat = paciente.fechaNacimiento ? new Date(paciente.fechaNacimiento).toISOString().split('T')[0] : ''
+          setFechaNacimiento(fechaFormat)
         } else {
-          setGenero(paciente.genero || '')
+          setPacienteExistente(false)
         }
-
-        setTelefono(paciente.telefono || '')
-        setDireccion(paciente.direccion || '')
-        setRegimen(paciente.regimen || '')
-        setEapb(paciente.eapb || '')
-        // Extraer solo la fecha local (YYYY-MM-DD)
-        const fechaFormat = paciente.fechaNacimiento ? new Date(paciente.fechaNacimiento).toISOString().split('T')[0] : ''
-        setFechaNacimiento(fechaFormat)
       } else {
         setPacienteExistente(false)
-        // Opcional: limpiar los demás campos si el usuario cambió el número por error y no existe
       }
     } catch (e) {
       console.error(e)
@@ -1081,8 +1080,8 @@ function AtencionForm({
 
         // Validacion de documento unificada
         if (tipoDocumento !== "CE" && tipoDocumento !== "PPT" && tipoDocumento !== "PA") {
-          if (age < 7 && tipoDocumento !== "RC" && tipoDocumento !== "MS" && tipoDocumento !== "NUIP") {
-            e.tipoDocumento = "Menores de 7 años solo pueden usar Registro civil/NUIP/MS"
+          if (age < 7 && tipoDocumento !== "RC" && tipoDocumento !== "NN" && tipoDocumento !== "NUIP") {
+            e.tipoDocumento = "Menores de 7 años solo pueden usar Registro civil/NUIP/NN"
           } else if (age >= 7 && age < 14 && tipoDocumento !== "RC" && tipoDocumento !== "TI") {
             e.tipoDocumento = "De 7 a 13 años: Registro civil o Tarjeta de identidad"
           } else if (age >= 14 && age < 18 && tipoDocumento !== "TI") {
@@ -1111,47 +1110,70 @@ function AtencionForm({
     setIsSubmitting(true)
     try {
       const token = localStorage.getItem("gestion-poblacional-token")
-      const res = await fetch("/api/atenciones", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          programaId,
-          pacienteNombre: nombrePaciente.trim(),
-          pacienteDocumento: documentoPaciente.trim(),
-          pacienteTipoDoc: tipoDocumento,
-          pacienteGenero: genero,
-          pacienteTelefono: telefono.trim(),
-          pacienteDireccion: direccion.trim(),
-          pacienteFechaNac: fechaNacimiento,
-          notaValoracion: notaValoracion.trim(),
-          profesionalId: user!.id,
-          // Mapeos antiguos de variables que coinciden con nuestra nueva API
-          nombreCompleto: nombrePaciente.trim(),
-          documento: documentoPaciente.trim(),
-          tipoDocumento,
-          genero,
-          telefono: telefono.trim(),
-          direccion: direccion.trim(),
-          fechaNacimiento,
-          nota: notaValoracion.trim(),
-          regimen,
-          eapb: eapb.trim(),
-        })
-      })
-
-      if (res.ok) {
-        toast.success("Atención registrada con éxito")
-        onCreated()
-      } else {
-        const err = await res.json()
-        toast.error(err.error || "Error al crear la atención")
+      const payload = {
+        programaId,
+        pacienteNombre: nombrePaciente.trim(),
+        pacienteDocumento: documentoPaciente.trim(),
+        pacienteTipoDoc: tipoDocumento,
+        pacienteGenero: genero,
+        pacienteTelefono: telefono.trim(),
+        pacienteDireccion: direccion.trim(),
+        pacienteFechaNac: fechaNacimiento,
+        notaValoracion: notaValoracion.trim(),
+        profesionalId: user!.id,
+        // Mapeos antiguos de variables que coinciden con nuestra nueva API
+        nombreCompleto: nombrePaciente.trim(),
+        documento: documentoPaciente.trim(),
+        tipoDocumento,
+        genero,
+        telefono: telefono.trim(),
+        direccion: direccion.trim(),
+        fechaNacimiento,
+        nota: notaValoracion.trim(),
+        regimen,
+        eapb: eapb.trim(),
       }
-    } catch (e) {
-      console.error(e)
-      toast.error("Error de red al crear la atención")
+
+      // 1. Guardado explícito sin conexión
+      if (!navigator.onLine) {
+        const { SyncManager } = await import('@/lib/sync-manager')
+        await SyncManager.enqueue('ATENCION', 'CREATE', payload)
+        toast.success("Atención guardada localmente (sin conexión)")
+        onCreated()
+        return
+      }
+
+      // 2. Intento de guardado en línea
+      try {
+        const res = await fetch("/api/atenciones", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        })
+
+        if (res.ok) {
+          toast.success("Atención registrada con éxito")
+          onCreated()
+        } else {
+          const err = await res.json()
+          throw new Error(err.error || "Error al crear la atención")
+        }
+      } catch (fetchErr: any) {
+        // Fallback: Si falla la red (TypeError: failed to fetch), lo encolamos
+        if (fetchErr.name === 'TypeError' || fetchErr.message?.toLowerCase().includes('fetch')) {
+          const { SyncManager } = await import('@/lib/sync-manager')
+          await SyncManager.enqueue('ATENCION', 'CREATE', payload)
+          toast.success("Atención guardada localmente (fallo de red)")
+          onCreated()
+        } else {
+          throw fetchErr
+        }
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Ocurrió un error inesperado")
     } finally {
       setIsSubmitting(false)
     }

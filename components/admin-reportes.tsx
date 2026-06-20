@@ -260,7 +260,7 @@ export function AdminReportes() {
                 <h2 className="text-lg font-semibold text-foreground">Atenciones por Programa</h2>
               </div>
               <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                   <BarChart data={atencionesPerPrograma} margin={{ top: 5, right: 10, left: -10, bottom: 60 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.90 0.02 285)" />
                     <XAxis dataKey="nombre" tick={{ fontSize: 11 }} angle={-40} textAnchor="end" height={80} interval={0} />
@@ -282,7 +282,7 @@ export function AdminReportes() {
                 {facturacionStats.filter(t => t.total > 0).length === 0 ? (
                   <div className="flex h-full w-full items-center justify-center text-muted-foreground text-sm">Sin registros</div>
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                     <BarChart data={facturacionStats.filter(t => t.total > 0).slice(0, 10)} margin={{ top: 5, right: 10, left: -10, bottom: 60 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.90 0.02 285)" />
                       <XAxis dataKey="nombre" tick={{ fontSize: 10 }} angle={-40} textAnchor="end" height={80} interval={0} />
@@ -370,7 +370,7 @@ export function AdminReportes() {
             </div>
             
             <div className="h-80">
-               <ResponsiveContainer width="100%" height="100%">
+               <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                  <BarChart data={facturacionStats.filter(t => t.total > 0)} margin={{ top: 20, right: 30, left: 0, bottom: 50 }}>
                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.90 0.02 285)" vertical={false} />
                    <XAxis dataKey="codigo" tick={{ fontSize: 11 }} angle={-35} textAnchor="end" height={60} />
@@ -543,7 +543,7 @@ export function AdminReportes() {
                </div>
                <div className="w-full h-80">
                  {(idStats?.piramide?.length || 0) > 0 ? (
-                   <ResponsiveContainer width="100%" height="100%">
+                   <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                      <BarChart layout="vertical" data={idStats?.piramide || []} margin={{ top: 10, right: 30, left: 20, bottom: 5 }}>
                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="oklch(0.9 0.02 285)" />
                        <XAxis type="number" hide />
@@ -570,7 +570,7 @@ export function AdminReportes() {
                   <h3 className="text-lg font-bold">Aseguramiento</h3>
                 </div>
                 <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                     <PieChart>
                       <Pie
                         data={idStats?.aseguramiento?.regimen || []}
@@ -660,7 +660,7 @@ export function AdminReportes() {
                      <h3 className="text-lg font-bold">Estrato Socioeconómico</h3>
                    </div>
                    <div className="h-56">
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                         <BarChart data={idStats?.estratos || []}>
                            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                            <XAxis dataKey="name" label={{ value: "Estrato", position: "insideBottom", offset: -5 }} />

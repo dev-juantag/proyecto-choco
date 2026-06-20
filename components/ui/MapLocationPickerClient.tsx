@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import { OpenStreetMapProvider } from 'leaflet-geosearch'
+import { EsriProvider } from 'leaflet-geosearch'
 
 // Arreglo para que los iconos por defecto de Leaflet funcionen en Next.js
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -29,12 +29,11 @@ function LocationMarker({ position, setPosition, setFieldValue }: any) {
   )
 }
 
-// Evento para mover la cámara suavemente si cambia la posición por código
 function MapUpdater({ position }: { position: L.LatLng | null }) {
   const map = useMap()
   useEffect(() => {
     if (position) {
-      map.flyTo(position, 16, { animate: true, duration: 1.5 })
+      map.flyTo(position, 18, { animate: true, duration: 1.5 })
     }
   }, [position, map])
   return null
@@ -63,15 +62,18 @@ export default function MapLocationPickerClient({
       
       const timeoutId = setTimeout(async () => {
         try {
-          const provider = new OpenStreetMapProvider({
-             params: {
-                countrycodes: 'co', // Limita la búsqueda a Colombia
-                'accept-language': 'es'
-             }
-          })
-          // Agregamos "Colombia" para darle contexto forzado a la búsqueda si no existe
-          const queryStr = searchQuery.toLowerCase().includes('colombia') ? searchQuery : searchQuery + ', Colombia'
-          const results = await provider.search({ query: queryStr })
+          const provider = new EsriProvider()
+          
+          let results: any[] = []
+          const parts = searchQuery.split(',').map(s => s.trim()).filter(Boolean)
+          
+          for (let i = 0; i < parts.length; i++) {
+            const queryStr = parts.slice(i).join(', ') + ', Colombia'
+            results = await provider.search({ query: queryStr })
+            if (results && results.length > 0) {
+              break;
+            }
+          }
           
           if (results && results.length > 0) {
             const best = results[0]

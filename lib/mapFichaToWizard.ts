@@ -67,10 +67,9 @@ export function mapFichaToWizardData(ficha: any, encuestadorDoc: string, perfilE
     integrantes: Array.isArray(ficha.pacientes)
       ? ficha.pacientes.map((p: any) => ({
           id: p.id,
-          primerNombre: p.nombres ? p.nombres.split(" ")[0] : "",
-          segundoNombre: p.nombres && p.nombres.split(" ").length > 1 ? p.nombres.split(" ").slice(1).join(" ") : "",
-          primerApellido: p.apellidos ? p.apellidos.split(" ")[0] : "",
-          segundoApellido: p.apellidos && p.apellidos.split(" ").length > 1 ? p.apellidos.split(" ").slice(1).join(" ") : "",
+          nombres: cleanVal(p.nombres),
+          apellidos: cleanVal(p.apellidos),
+          datosDesconocidos: p.tipoDoc === "NN" && (p.documento?.startsWith("SD-") || false),
           tipoDoc: cleanVal(p.tipoDoc || "CC"),
           numDoc: cleanVal(p.documento),
           fechaNacimiento: cleanVal(p.fechaNacimiento),

@@ -250,13 +250,14 @@ export async function PUT(
 
       if (finalIntegrantes.length > 0) {
         for (const int of finalIntegrantes) {
-          const nombresArr = [int.primerNombre, int.segundoNombre].filter(Boolean)
-          const apellidosArr = [int.primerApellido, int.segundoApellido].filter(Boolean)
+          const toTitleCase = (str: string) => str.toLowerCase().replace(/(?:^|\s)\S/g, (a) => a.toUpperCase());
+          const nombresStr = toTitleCase(int.nombres || "")
+          const apellidosStr = toTitleCase(int.apellidos || "")
           
           const integranteData = {
             fichaId: ficha.id,
-            nombres: nombresArr.join(" ").toUpperCase(),
-            apellidos: apellidosArr.join(" ").toUpperCase(),
+            nombres: nombresStr,
+            apellidos: apellidosStr,
             tipoDoc: String(int.tipoDoc || 'CC'),
             fechaNacimiento: String(int.fechaNacimiento || ''),
             parentesco: parseInt(int.parentesco) || 1,

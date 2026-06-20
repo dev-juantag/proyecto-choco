@@ -78,7 +78,7 @@ export async function POST(req: Request) {
         territorioIds: (user as any).territoriosAsignados?.map((t: any) => t.id) || []
       },
       JWT_SECRET,
-      { expiresIn: "8h" }
+      { expiresIn: "7d" }
     )
 
     // Acabar login exitoso: Actualizar 'lastLogin'

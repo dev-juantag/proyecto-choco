@@ -10,39 +10,43 @@ export const TIPO_VIVIENDA = [
   { id: 1, label: "Casa" },
   { id: 2, label: "Apartamento" },
   { id: 3, label: "Habitación o cuarto" },
-  { id: 4, label: "Vivienda indígena" },
-  { id: 5, label: "Refugio / Albergue" },
-  { id: 6, label: "Otro" }
-];
-
-export const MATERIAL_PAREDES = [
-  { id: 1, label: "Bloque, ladrillo, piedra, concreto" },
-  { id: 2, label: "Madera pulida" },
-  { id: 3, label: "Tapia pisada, adobe" },
-  { id: 4, label: "Bahareque" },
-  { id: 5, label: "Madera burda, tabla, tablón" },
-  { id: 6, label: "Zinc, tela, cartón, deshechos" },
-  { id: 7, label: "Sin paredes" },
-  { id: 8, label: "Otro" }
-];
-
-export const MATERIAL_PISOS = [
-  { id: 1, label: "Mármol, baldosa, terrazo" },
-  { id: 2, label: "Alfombra" },
-  { id: 3, label: "Madera pulida" },
-  { id: 4, label: "Cemento, gravilla" },
-  { id: 5, label: "Madera burda, tabla, tablón" },
-  { id: 6, label: "Tierra" },
+  { id: 4, label: "Finca o vivienda rural" },
+  { id: 5, label: "Vivienda indígena" },
+  { id: 6, label: "Refugio / Albergue" },
   { id: 7, label: "Otro" }
 ];
 
+export const MATERIAL_PAREDES = [
+  { id: 1, label: "Bloque, ladrillo, piedra o concreto" },
+  { id: 2, label: "Madera pulida" },
+  { id: 3, label: "Madera burda, tabla o tablón" },
+  { id: 4, label: "Tapia pisada o adobe" },
+  { id: 5, label: "Bahareque" },
+  { id: 6, label: "Lámina metálica (zinc)" },
+  { id: 7, label: "Materiales provisionales (cartón, tela, plástico, desechos)" },
+  { id: 8, label: "Sin paredes" },
+  { id: 9, label: "Otro" }
+];
+
+export const MATERIAL_PISOS = [
+  { id: 1, label: "Mármol, porcelanato, baldosa, cerámica o terrazo" },
+  { id: 2, label: "Madera pulida o laminado" },
+  { id: 3, label: "Alfombra" },
+  { id: 4, label: "Cemento" },
+  { id: 5, label: "Gravilla" },
+  { id: 6, label: "Madera burda, tabla o tablón" },
+  { id: 7, label: "Tierra o arena" },
+  { id: 8, label: "Otro" }
+];
+
 export const MATERIAL_TECHOS = [
-  { id: 1, label: "Plancha de concreto, teja de barro" },
-  { id: 2, label: "Teja de zinc" },
-  { id: 3, label: "Teja de asbesto / cemento (Eternit)" },
-  { id: 4, label: "Paja, palma u otros vegetales" },
-  { id: 5, label: "Desechos (cartón, plástico, tela)" },
-  { id: 6, label: "Otro" }
+  { id: 1, label: "Losa o plancha de concreto" },
+  { id: 2, label: "Teja de barro" },
+  { id: 3, label: "Teja metálica (zinc)" },
+  { id: 4, label: "Teja de fibrocemento (Eternit o similar)" },
+  { id: 5, label: "Paja, palma u otros materiales vegetales" },
+  { id: 6, label: "Materiales provisionales (cartón, plástico, tela, desechos)" },
+  { id: 7, label: "Otro" }
 ];
 
 export const FUENTE_AGUA = [
@@ -50,10 +54,11 @@ export const FUENTE_AGUA = [
   { id: 2, label: "Acueducto comunitario" },
   { id: 3, label: "Pozo con bomba" },
   { id: 4, label: "Pozo sin bomba, jagüey" },
-  { id: 5, label: "Agua lluvia" },
-  { id: 6, label: "Río, vertiente, acequia" },
-  { id: 7, label: "Carro tanque" },
-  { id: 8, label: "Otro" }
+  { id: 5, label: "Nacimiento o manantial" },
+  { id: 6, label: "Agua lluvia" },
+  { id: 7, label: "Río, quebrada, arroyo, canales" },
+  { id: 8, label: "Carro tanque" },
+  { id: 9, label: "Otro" }
 ];
 
 export const DISPOSICION_EXCRETAS = [
@@ -75,21 +80,24 @@ export const AGUAS_RESIDUALES = [
 
 export const DISPOSICION_RESIDUOS = [
   { id: 1, label: "Servicio público de recolección" },
-  { id: 2, label: "Lo entierran" },
-  { id: 3, label: "Lo queman" },
-  { id: 4, label: "Lo tiran al río o quebrada" },
-  { id: 5, label: "Lo tiran al campo / patio" },
-  { id: 6, label: "Otro" }
+  { id: 2, label: "Reciclaje" },
+  { id: 3, label: "Lo entierran" },
+  { id: 4, label: "Lo queman" },
+  { id: 5, label: "Lo tiran al río o quebrada" },
+  { id: 6, label: "Lo tiran al campo / patio" },
+  { id: 7, label: "Otro" }
 ];
 
 export const RIESGO_ACCIDENTE = [
   { id: 1, label: "Inundaciones" },
   { id: 2, label: "Deslizamientos" },
-  { id: 3, label: "Presencia de minas o explosivos" },
-  { id: 4, label: "Cercanía a cables de alta tensión" },
-  { id: 5, label: "Estructuras de vivienda deterioradas" },
-  { id: 6, label: "Ninguno" },
-  { id: 7, label: "Otro" }
+  { id: 3, label: "Incendios" },
+  { id: 4, label: "Sismos" },
+  { id: 5, label: "Presencia de minas o explosivos" },
+  { id: 6, label: "Cercanía a cables de alta tensión" },
+  { id: 7, label: "Estructuras de vivienda deterioradas" },
+  { id: 8, label: "Ninguno" },
+  { id: 9, label: "Otro" }
 ];
 
 export const FUENTE_ENERGIA = [
@@ -107,11 +115,14 @@ export const FUENTE_ENERGIA = [
 export const ANIMALES = [
   { id: 1, label: "Perros" },
   { id: 2, label: "Gatos" },
-  { id: 3, label: "Equinos (caballos, mulos)" },
+  { id: 3, label: "Equinos (caballos, mulas)" },
   { id: 4, label: "Bovinos (vacas)" },
-  { id: 5, label: "Porcinos (cerdos)" },
-  { id: 6, label: "Aves de corral" },
-  { id: 7, label: "Otros" }
+  { id: 5, label: "Ovino (ovejas)" },
+  { id: 6, label: "Caprinos (cabras)" },
+  { id: 7, label: "Porcinos (cerdos)" },
+  { id: 8, label: "Aves de corral" },
+  { id: 9, label: "Animales silvestres" },
+  { id: 10, label: "Otros" }
 ];
 
 export const TIPO_FAMILIA = [
@@ -205,7 +216,7 @@ export const TIPO_DOCUMENTO = [
   { id: "TI", label: "Tarjeta de Identidad" },
   { id: "RC", label: "Registro Civil" },
   { id: "CE", label: "Cédula de Extranjería" },
-  { id: "MS", label: "Menor sin Identificar" },
+  { id: "NN", label: "Persona sin identificar" },
   { id: "PEP", label: "Permiso Especial de Permanencia" },
   { id: "PPT", label: "Permiso por Protección Temporal" }
 ];

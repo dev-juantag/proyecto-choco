@@ -1,11 +1,14 @@
 'use client'
 
+import { useEffect } from 'react'
+
 import { useFormContext } from 'react-hook-form'
 import { Info, MapPin, Crosshair } from 'lucide-react'
 import { ESTADO_VISITA, TIPO_DOCUMENTO_ENCUESTADOR, PERFIL_ENCUESTADOR } from '@/lib/constants'
 import { inp, sel, card, cardBorder, lbl, lblStyle, required as reqStyle, chk, chkLabel, btnGreen, btnGreenStyle } from './wizardStyles'
 import MapLocationPicker from '@/components/ui/MapLocationPicker'
 import { useAuth } from '@/lib/auth-context'
+import { COLOMBIA_DIVIPOLA } from '@/lib/colombia'
 
 export default function Step1InfoGeneral() {
   const { register, setValue, watch } = useFormContext()
@@ -22,6 +25,17 @@ export default function Step1InfoGeneral() {
   const lat = watch('latitud')
   const lng = watch('longitud')
   const estadoVisita = watch('estadoVisita')
+  const selectedDept = watch('departamento')
+
+  const normalizeStr = (s: string) => (s || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+  const selectedDeptNorm = normalizeStr(selectedDept)
+  const availableMunicipios = COLOMBIA_DIVIPOLA.find(d => normalizeStr(d.departamento) === selectedDeptNorm)?.municipios || []
+
+  useEffect(() => {
+    if (!isSuperAdmin && !watch('perfilEncuestador')) {
+      setValue('perfilEncuestador', 'auxiliar')
+    }
+  }, [isSuperAdmin, setValue, watch])
 
   return (
     <div className="space-y-4">
@@ -50,10 +64,30 @@ export default function Step1InfoGeneral() {
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <F label="Departamento" required>
-            <input {...register('departamento')} readOnly={!isSuperAdmin} className={`${inp} ${!isSuperAdmin ? 'bg-gray-100 cursor-not-allowed text-gray-600 font-bold' : ''}`} />
+            <input 
+              {...register('departamento')} 
+              list="departamentos-list" 
+              placeholder="Ej: CHOCO" 
+              className={inp} 
+            />
+            <datalist id="departamentos-list">
+              {COLOMBIA_DIVIPOLA.map(d => (
+                <option key={d.departamento} value={d.departamento} />
+              ))}
+            </datalist>
           </F>
           <F label="Municipio" required>
-            <input {...register('municipio')} readOnly={!isSuperAdmin} className={`${inp} ${!isSuperAdmin ? 'bg-gray-100 cursor-not-allowed text-gray-600 font-bold' : ''}`} />
+            <input 
+              {...register('municipio')} 
+              list="municipios-list" 
+              placeholder="Ej: QUIBDO" 
+              className={inp} 
+            />
+            <datalist id="municipios-list">
+              {availableMunicipios.map(m => (
+                <option key={m} value={m} />
+              ))}
+            </datalist>
           </F>
           <F label="Territorio (Micro/Macro)" required>
             <input {...register('microterritorio')} readOnly={!isSuperAdmin} className={`${inp} ${!isSuperAdmin ? 'bg-gray-100 cursor-not-allowed text-gray-600 font-bold' : ''}`} placeholder={isSuperAdmin ? "Ej: TER-10" : ""} />
@@ -126,8 +160,8 @@ export default function Step1InfoGeneral() {
             <input {...register('numDocEncuestador')} readOnly={!isSuperAdmin} className={`${inp} ${!isSuperAdmin ? 'bg-gray-100 cursor-not-allowed text-gray-600 font-bold' : ''}`} />
           </F>
           <F label="Perfil Encuestador" required className="sm:col-span-2">
-            <select {...register('perfilEncuestador')} className={`${sel} ${!isSuperAdmin ? 'bg-gray-100 cursor-not-allowed text-gray-600 font-bold' : ''}`}>
-              {PERFIL_ENCUESTADOR.filter(o => isSuperAdmin || o.id === 'auxiliar').map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+            <select {...register('perfilEncuestador')} className={sel}>
+              {PERFIL_ENCUESTADOR.filter(o => o.id === 'auxiliar' || (isSuperAdmin && o.id === 'otro')).map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
             </select>
           </F>
           

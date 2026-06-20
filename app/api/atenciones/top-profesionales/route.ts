@@ -45,7 +45,7 @@ export async function GET(req: Request) {
       countsMap.set(tc.profesionalId, tc._count.id);
     }
 
-    const allProfCounts = allProfs.map(user => {
+    const allProfCounts = allProfs.map((user: any) => {
       return {
         id: user.id,
         nombre: user.nombre || "Profesional Desconocido",

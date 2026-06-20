@@ -391,7 +391,7 @@ export function IdentificacionesModule() {
             </button>
           )}
           </div>
-          {isAuxiliar && (
+          {(isAuxiliar || isSuperAdmin) && (
             <button
               onClick={() => setShowNewIdConfirm(true)}
               className="flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer shadow-sm hover:shadow-md w-full sm:w-auto text-center whitespace-nowrap"

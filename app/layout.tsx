@@ -3,6 +3,7 @@ import { Poppins } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'sonner'
 import { COMPANY_NAME } from '@/lib/constants'
+import { GlobalSyncListener } from '@/components/GlobalSyncListener'
 
 const _poppins = Poppins({
   subsets: ['latin'],
@@ -42,6 +43,7 @@ export default function RootLayout({
       <body className={`${_poppins.variable} font-sans antialiased`}>
         {children}
         <Toaster position="top-right" richColors duration={8000} />
+        <GlobalSyncListener />
       </body>
     </html>
   )
