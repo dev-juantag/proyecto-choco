@@ -859,7 +859,7 @@ export function DashboardHome() {
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {(user?.rol === "auxiliar" || isEnfermeraJefe)
-                          ? `En: ${a.microterritorio} — ${getRelativeTime(a.fechaDiligenciamiento)}`
+                          ? `Territorio: ${a.territorio} — ${getRelativeTime(a.fechaDiligenciamiento)}`
                           : (isFacturador 
                               ? `${getProgramaById(a.programaId)?.nombre || "Sin programa"} — ${getRelativeTime(a.createdAtISO, a.fecha)}`
                               : `Por: ${a.profesionalNombre}`)

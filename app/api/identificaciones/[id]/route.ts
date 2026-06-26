@@ -138,7 +138,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await req.json()
-    const { integrantes, territorio, microterritorio, encuestadorId, userId, ...hogarData } = body
+    const { integrantes, territorio, encuestadorId, userId, ...hogarData } = body
 
     const isEfectiva = String(hogarData.estadoVisita) === '1';
     const finalIntegrantes = isEfectiva ? (integrantes || []) : [];
@@ -175,7 +175,6 @@ export async function PUT(
       estadoVisita: String(hogarData.estadoVisita || '1'),
       departamento: String(hogarData.departamento || 'CHOCO'),
       municipio: String(hogarData.municipio || 'PAIMADO'),
-      microterritorio: String(microterritorio || 'M1'),
       uzpe: hogarData.uzpe || null,
       centroPoblado: hogarData.centroPoblado || null,
       descripcionUbicacion: hogarData.descripcionUbicacion || null,
@@ -183,7 +182,7 @@ export async function PUT(
       latitud: hogarData.latitud ? parseFloat(hogarData.latitud) : null,
       longitud: hogarData.longitud ? parseFloat(hogarData.longitud) : null,
       numEBS: hogarData.numEBS || null,
-      prestadorPrimario: hogarData.prestadorPrimario || null,
+      equipoTerritorio: hogarData.equipoTerritorio || null,
       observacionesRechazo: hogarData.observacionesRechazo || null,
       numHogar: hogarData.numHogar || null,
       numFamilia: hogarData.numFamilia || null,
@@ -281,6 +280,13 @@ export async function PUT(
             talla: int.talla ? parseFloat(int.talla) : null,
             perimetroBraquial: int.perimetroBraquial ? parseFloat(int.perimetroBraquial) : null,
             diagNutricional: int.diagNutricional ? parseInt(int.diagNutricional) : null,
+            presionArterial: int.presionArterial || null,
+            frecuenciaCardiaca: int.frecuenciaCardiaca ? parseInt(int.frecuenciaCardiaca) : null,
+            frecuenciaRespiratoria: int.frecuenciaRespiratoria ? parseInt(int.frecuenciaRespiratoria) : null,
+            saturacionOxigeno: int.saturacionOxigeno ? parseFloat(int.saturacionOxigeno) : null,
+            perimetroCefalico: int.perimetroCefalico ? parseFloat(int.perimetroCefalico) : null,
+            tipoCancer: int.tipoCancer || null,
+            riesgoMetalesPesados: int.riesgoMetalesPesados || null,
             practicaDeportiva: Boolean(int.practicaDeportiva),
             lactanciaMaterna: Boolean(int.lactanciaMaterna),
             lactanciaMeses: int.lactanciaMeses ? parseInt(int.lactanciaMeses) : null,

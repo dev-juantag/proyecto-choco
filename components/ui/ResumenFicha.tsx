@@ -18,7 +18,7 @@ import { toast } from 'sonner'
 export default function ResumenFicha({ 
   ficha, onClose, onStartNew, onEnableUpdate, onGoToEdit, onRefreshFicha 
 }: { 
-  ficha: any, onClose: () => void, onStartNew?: (micro: string) => void,
+  ficha: any, onClose: () => void, onStartNew?: () => void,
   onEnableUpdate?: (id: string, current: boolean) => void,
   onGoToEdit?: () => void,
   onRefreshFicha?: () => void
@@ -205,7 +205,7 @@ export default function ResumenFicha({
               <div>
                 <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Territorio</p>
                 <p className="font-bold text-gray-800 text-sm">
-                  {codigoTerritorio || ficha.territorio || ficha.territorioId || 'S/N'} / {ficha.microterritorio}
+                  {codigoTerritorio || ficha.territorio || ficha.territorioId || 'S/N'}
                 </p>
               </div>
               <div>
@@ -243,8 +243,8 @@ export default function ResumenFicha({
             
             <div className="grid grid-cols-2 gap-y-6 gap-x-4">
               <div className="col-span-2">
-                <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Prestador Primario</p>
-                <p className="font-bold text-gray-800 text-sm uppercase">{ficha.prestadorPrimario || 'ESE SALUD PAIMADO'} (EBS: {ficha.numEBS})</p>
+                <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Equipo de territorio</p>
+                <p className="font-bold text-gray-800 text-sm uppercase">{ficha.equipoTerritorio || 'Sin asignar'}</p>
               </div>
               <div className="col-span-2">
                 <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Encuestador Creador</p>
@@ -282,7 +282,7 @@ export default function ResumenFicha({
             </div>
             {onStartNew && (
               <button 
-                onClick={() => onStartNew(ficha.microterritorio)}
+                onClick={() => onStartNew()}
                 className={`px-6 py-2.5 rounded-xl font-bold shadow transition-colors flex items-center justify-center whitespace-nowrap text-white ${
                   ficha.estadoVisita === '2' ? 'bg-orange-600 hover:bg-orange-700' : 'bg-red-600 hover:bg-red-700'
                 }`}

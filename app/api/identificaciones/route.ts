@@ -66,7 +66,6 @@ export async function GET(req: Request) {
     if (searchStr) {
       whereClause.OR = [
         { direccion: { contains: searchStr, mode: 'insensitive' } },
-        { microterritorio: { contains: searchStr, mode: 'insensitive' } },
         { pacientes: { some: { documento: { contains: searchStr } } } },
         { encuestador: { nombre: { contains: searchStr, mode: 'insensitive' } } },
         { encuestador: { documento: { contains: searchStr } } },
@@ -96,6 +95,7 @@ export async function GET(req: Request) {
       descripcionUbicacion: true,
       estratoSocial: true,
       numEBS: true,
+      equipoTerritorio: true,
       numHogar: true,
       numFamilia: true,
       codFicha: true,
@@ -106,7 +106,7 @@ export async function GET(req: Request) {
     };
 
     if (hasPagination) {
-      [totalCount, fichas] = await prisma.$transaction([
+      [totalCount, fichas] = await Promise.all([
         (prisma.fichaHogar as any).count({ where: whereClause }),
         (prisma.fichaHogar as any).findMany({
           where: whereClause,
@@ -131,13 +131,13 @@ export async function GET(req: Request) {
       estadoVisita: f.estadoVisita,
       territorio: f.territorio?.nombre || f.territorioId || 'Sin asignar',
       territorioCodigo: f.territorio?.codigo || '',
-      microterritorio: f.microterritorio || 'No esp.',
       fechaDiligenciamiento: f.fechaDiligenciamiento.toISOString(),
       direccion: f.direccion,
       centroPoblado: f.centroPoblado,
       descripcionUbicacion: f.descripcionUbicacion,
       estratoSocial: f.estratoSocial,
       numEBS: f.numEBS,
+      equipoTerritorio: f.equipoTerritorio,
       numHogar: f.numHogar,
       numFamilia: f.numFamilia,
       codFicha: f.codFicha,
@@ -181,7 +181,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    const { integrantes, territorio, microterritorio, encuestadorId, userId, ...hogarData } = body
+    const { integrantes, territorio, encuestadorId, userId, ...hogarData } = body
 
     const authenticatedUserId = auth.decoded?.userId;
 
@@ -199,21 +199,21 @@ export async function POST(req: Request) {
 
     // Validación para prevenir Fichas Huérfanas (Robo de Integrantes)
     if (finalIntegrantes.length > 0) {
-      const documentos = finalIntegrantes.map((int: any) => String(int.numDoc || '')).filter(Boolean);
-      if (documentos.length > 0) {
-        const pacientesExistentes = await prisma.paciente.findMany({
-          where: { documento: { in: documentos } },
-          select: { documento: true, ficha: { select: { numFamilia: true, id: true } } }
-        });
-        
-        if (pacientesExistentes.length > 0) {
-          const conflictos = pacientesExistentes.map((p: any) => `${p.documento} (Familia: ${p.ficha?.numFamilia || 'Desconocida'})`).join(', ');
-          return NextResponse.json({
-            success: false,
-            error: `No se puede guardar la ficha. Los siguientes documentos ya se encuentran registrados en otra identificación: ${conflictos}`
-          }, { status: 400 });
-        }
-      }
+       const documentos = finalIntegrantes.map((int: any) => String(int.numDoc || '')).filter(Boolean);
+       if (documentos.length > 0) {
+         const pacientesExistentes = await prisma.paciente.findMany({
+           where: { documento: { in: documentos } },
+           select: { documento: true, ficha: { select: { numFamilia: true, id: true } } }
+         });
+         
+         if (pacientesExistentes.length > 0) {
+           const conflictos = pacientesExistentes.map((p: any) => `${p.documento} (Familia: ${p.ficha?.numFamilia || 'Desconocida'})`).join(', ');
+           return NextResponse.json({
+             success: false,
+             error: `No se puede guardar la ficha. Los siguientes documentos ya se encuentran registrados en otra identificación: ${conflictos}`
+           }, { status: 400 });
+         }
+       }
     }
 
     const toIntArray = (arr: any): number[] => {
@@ -226,7 +226,6 @@ export async function POST(req: Request) {
       departamento: String(hogarData.departamento || 'CHOCO'),
       municipio: String(hogarData.municipio || 'PAIMADO'),
       territorioId: territorio || null,
-      microterritorio: String(microterritorio || 'M1'),
       uzpe: hogarData.uzpe || null,
       centroPoblado: hogarData.centroPoblado || null,
       descripcionUbicacion: hogarData.descripcionUbicacion || null,
@@ -248,7 +247,7 @@ export async function POST(req: Request) {
       })(),
       encuestadorId: authenticatedUserId || encuestadorId || userId || null,
       numEBS: hogarData.numEBS || null,
-      prestadorPrimario: hogarData.prestadorPrimario || null,
+      equipoTerritorio: hogarData.equipoTerritorio || null,
       observacionesRechazo: hogarData.observacionesRechazo || null,
       numHogar: hogarData.numHogar || null,
       numFamilia: hogarData.numFamilia || null,
@@ -290,7 +289,7 @@ export async function POST(req: Request) {
         dispExcretasOtro: hogarData.dispExcretasOtro || null,
         aguasResidualesOtro: hogarData.aguasResidualesOtro || null,
         dispResiduosOtro: hogarData.dispResiduosOtro || null,
-        riesgoAccidenteOtro: hogarData.riesgoAccidenteOtro || null,
+        riesgoAccidenteOtro: hogarData.riesdeAccidenteOtro || hogarData.riesgoAccidenteOtro || null,
         animalesOtro: hogarData.animalesOtro || null,
         fuenteEnergiaOtro: hogarData.fuenteEnergiaOtro || null,
       }
@@ -317,7 +316,7 @@ export async function POST(req: Request) {
             gestante: int.gestante || 'NA',
             mesesGestacion: int.gestante === 'SI' && int.mesesGestacion ? parseInt(int.mesesGestacion) : null,
             telefono: int.telefono || null,
-            direccion: String(hogarData.direccion || ''), // Added direccion from hogar
+            direccion: String(hogarData.direccion || ''),
             nivelEducativo: int.nivelEducativo ? parseInt(int.nivelEducativo) : null,
             ocupacion: int.ocupacion ? parseInt(int.ocupacion) : null,
             regimen: int.regimen || null,
@@ -333,6 +332,13 @@ export async function POST(req: Request) {
             talla: int.talla ? parseFloat(int.talla) : null,
             perimetroBraquial: int.perimetroBraquial ? parseFloat(int.perimetroBraquial) : null,
             diagNutricional: int.diagNutricional ? parseInt(int.diagNutricional) : null,
+            presionArterial: int.presionArterial || null,
+            frecuenciaCardiaca: int.frecuenciaCardiaca ? parseInt(int.frecuenciaCardiaca) : null,
+            frecuenciaRespiratoria: int.frecuenciaRespiratoria ? parseInt(int.frecuenciaRespiratoria) : null,
+            saturacionOxigeno: int.saturacionOxigeno ? parseFloat(int.saturacionOxigeno) : null,
+            perimetroCefalico: int.perimetroCefalico ? parseFloat(int.perimetroCefalico) : null,
+            tipoCancer: int.tipoCancer || null,
+            riesgoMetalesPesados: int.riesgoMetalesPesados || null,
             practicaDeportiva: Boolean(int.practicaDeportiva),
             lactanciaMaterna: Boolean(int.lactanciaMaterna),
             lactanciaMeses: int.lactanciaMeses ? parseInt(int.lactanciaMeses) : null,

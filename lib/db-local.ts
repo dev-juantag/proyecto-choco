@@ -6,7 +6,6 @@ export interface LocalFichaHogar {
   departamento: string;
   municipio: string;
   territorioId?: string;
-  microterritorio: string;
   uzpe?: string;
   centroPoblado?: string;
   descripcionUbicacion?: string;
@@ -16,7 +15,7 @@ export interface LocalFichaHogar {
   fechaDiligenciamiento: string;
   encuestadorId?: string;
   numEBS?: string;
-  prestadorPrimario?: string;
+  equipoTerritorio?: string;
   observacionesRechazo?: string;
   numHogar?: string;
   numFamilia?: string;
@@ -86,6 +85,13 @@ export interface LocalPaciente {
   talla?: number;
   perimetroBraquial?: number;
   diagNutricional?: number;
+  presionArterial?: string;
+  frecuenciaCardiaca?: number;
+  frecuenciaRespiratoria?: number;
+  saturacionOxigeno?: number;
+  perimetroCefalico?: number;
+  tipoCancer?: string;
+  riesgoMetalesPesados?: any;
   practicaDeportiva: boolean;
   lactanciaMaterna: boolean;
   lactanciaMeses?: number;
@@ -145,7 +151,7 @@ class PopulationOfflineDB extends Dexie {
   constructor() {
     super('SistemaGestionPoblacionalOffline');
     this.version(1).stores({
-      fichas: 'id, estadoVisita, microterritorio, direccion, fechaDiligenciamiento',
+      fichas: 'id, estadoVisita, direccion, fechaDiligenciamiento',
       atenciones: 'id, pacienteId, pacienteDocumento, profesionalId, programaId, createdAt',
       derivaciones: 'id, pacienteId, pacienteDocumento, profesionalId, programaId, estado, createdAt',
       syncQueue: '++id, type, action, status, createdAt'

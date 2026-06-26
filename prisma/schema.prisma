@@ -68,12 +68,11 @@ model Programa {
 model FichaHogar {
   id                    String        @id @default(uuid())
   consecutivo           Int           @unique @default(autoincrement())
-  estadoVisita          String        @default("1") // 1 = EFECTIVA, 2 = NO EFECTIVA, 3 = RECHAZADA
+  estadoVisita          String        @default("1") // 1 = EFECTIVA
   departamento          String        @default("CHOCO")
   municipio             String        @default("QUIBDO")
   territorioId          String?
   territorio            Territorio?   @relation(fields: [territorioId], references: [id])
-  microterritorio       String?       @default("MT01")
   uzpe                  String?
   centroPoblado         String?
   descripcionUbicacion  String?
@@ -84,7 +83,7 @@ model FichaHogar {
   encuestadorId         String?
   encuestador           User?         @relation(fields: [encuestadorId], references: [id])
   numEBS                String?
-  prestadorPrimario     String?
+  equipoTerritorio      String?
   observacionesRechazo  String?
   numHogar              String?
   numFamilia            String?
@@ -162,6 +161,13 @@ model Paciente {
   talla                   Float?
   perimetroBraquial       Float?
   diagNutricional         Int?
+  presionArterial         String?
+  frecuenciaCardiaca      Int?
+  frecuenciaRespiratoria  Int?
+  saturacionOxigeno       Float?
+  perimetroCefalico       Float?
+  tipoCancer              String?
+  riesgoMetalesPesados    Json?
   practicaDeportiva       Boolean?      @default(false)
   lactanciaMaterna        Boolean?      @default(false)
   lactanciaMeses          Int?

@@ -117,7 +117,7 @@ export default function Step3Familia() {
             <p className="text-[11px] text-gray-400 mt-1">Escala de 22 preguntas Likert 0-4.</p>
           </F>
         )}
-        <F label="Vulnerabilidad Social (múltiple)">
+        <F label="Vulnerabilidad Social (múltiple)" required>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 mt-1">
             {VULNERABILIDADES.map(v => (
               <label key={v.id} className={chkLabel}>

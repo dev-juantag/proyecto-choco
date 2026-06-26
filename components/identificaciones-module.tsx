@@ -17,6 +17,7 @@ import ConfirmModal from "@/components/ui/ConfirmModal"
 export function IdentificacionesModule() {
   const { user, isSuperAdmin, isAdmin } = useAuth()
   const isAuxiliar = user?.rol?.toLowerCase() === "auxiliar"
+  const isProfesional = user?.rol?.toLowerCase() === "profesional"
 
   const [qBusqueda, setQBusqueda] = useState("")
   const [activeSearch, setActiveSearch] = useState("")
@@ -51,8 +52,6 @@ export function IdentificacionesModule() {
   const [showExportAlert, setShowExportAlert] = useState(false)
   
   const [isWizardOpen, setIsWizardOpen] = useState(false)
-  const [showMicroModal, setShowMicroModal] = useState(false)
-  const [selectedMicro, setSelectedMicro] = useState("")
 
   // Estados para Modal de Vista Detallada
   const [showDetailModal, setShowDetailModal] = useState(false)
@@ -145,7 +144,10 @@ export function IdentificacionesModule() {
       setLoadingDetail(true)
       setShowDetailModal(true)
       const res = await fetch(`/api/identificaciones/${id}`)
-      if (!res.ok) throw new Error("Error al obtener detalle de la identificación")
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.detail || "Error al obtener detalle de la identificación")
+      }
       const data = await res.json()
       setSelectedFichaDetail(data)
     } catch (e: any) {
@@ -329,7 +331,6 @@ export function IdentificacionesModule() {
       <div className="w-full animate-in fade-in duration-500">
         <IdentificacionesWizard 
           territorioId={user?.territorioId || ''} 
-          microterritorio={selectedMicro} 
           existingFicha={editFicha}
           onClose={() => {
             setIsWizardOpen(false)
@@ -391,7 +392,7 @@ export function IdentificacionesModule() {
             </button>
           )}
           </div>
-          {(isAuxiliar || isSuperAdmin) && (
+          {(isAuxiliar || isProfesional || isAdmin || isSuperAdmin) && (
             <button
               onClick={() => setShowNewIdConfirm(true)}
               className="flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer shadow-sm hover:shadow-md w-full sm:w-auto text-center whitespace-nowrap"
@@ -414,8 +415,8 @@ export function IdentificacionesModule() {
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input 
                 type="text" 
-                title="Buscar por documento de integrante, documento encuestador, microterritorio o dirección"
-                placeholder="C.C. Paciente / Encuestador / Micro / Dir" 
+                title="Buscar por documento de integrante, documento encuestador o dirección"
+                placeholder="C.C. Paciente / Encuestador / Dir" 
                 className="w-full pl-9 pr-4 py-2.5 border rounded-xl text-sm font-semibold bg-background border-input outline-none focus:ring-2 focus:ring-primary" 
                 value={qBusqueda} 
                 onChange={e => setQBusqueda(e.target.value)} 
@@ -520,7 +521,7 @@ export function IdentificacionesModule() {
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
                           <MapPin className="w-4 h-4 text-muted-foreground" />
-                          {f.territorio} <span className="text-muted-foreground">|</span> {f.microterritorio}
+                           {f.territorio}
                         </div>
                         <span className="text-xs text-muted-foreground italic truncate max-w-[200px]">
                           {f.direccion}
@@ -627,10 +628,9 @@ export function IdentificacionesModule() {
                     <ResumenFicha 
                       ficha={selectedFichaDetail} 
                       onClose={() => { setShowDetailModal(false); setSelectedFichaDetail(null); }} 
-                      onStartNew={(micro: string) => {
+                      onStartNew={() => {
                         setShowDetailModal(false); 
                         setSelectedFichaDetail(null);
-                        setSelectedMicro(micro);
                         setIsWizardOpen(true);
                       }}
                       onEnableUpdate={async (id, current) => {
@@ -684,7 +684,7 @@ export function IdentificacionesModule() {
       {showNewIdConfirm && (
         <div 
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-300 overflow-y-auto w-full h-full"
-          onClick={(e) => { if (e.target === e.currentTarget) { setShowNewIdConfirm(false); setSelectedMicro(""); } }}
+          onClick={(e) => { if (e.target === e.currentTarget) { setShowNewIdConfirm(false); } }}
         >
           <div className="w-full max-w-md rounded-[2.5rem] bg-white p-8 shadow-2xl animate-in zoom-in-95 duration-300 border-none overflow-y-auto max-h-[90vh]">
             <div className="flex flex-col items-center text-center">
@@ -696,61 +696,23 @@ export function IdentificacionesModule() {
                 Nueva Identificación
               </h2>
               
-              <p className="text-slate-600 font-medium text-lg leading-relaxed mb-6 px-4 text-center">
-                ¿Estás seguro de que deseas iniciar una nueva identificación para este territorio? 
+              <p className="text-slate-600 font-medium text-lg leading-relaxed mb-8 px-4 text-center">
+                ¿Estás seguro de que deseas iniciar una nueva identificación? 
               </p>
-
-              <div className="w-full bg-slate-50 p-6 rounded-[2rem] border border-slate-100 mb-8">
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3 text-left">
-                  Selecciona el Microterritorio (MT)
-                </label>
-                <select 
-                  className={`w-full px-3 sm:px-5 py-3 sm:py-4 rounded-2xl border-2 bg-white font-bold text-sm sm:text-base text-slate-700 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all appearance-none cursor-pointer text-ellipsis overflow-hidden ${
-                    !selectedMicro ? 'border-orange-200 text-slate-400 animate-pulse' : 'border-slate-200'
-                  }`}
-                  value={selectedMicro}
-                  onChange={(e) => setSelectedMicro(e.target.value)}
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'right 1.25rem center',
-                    backgroundSize: '1.25rem'
-                  }}
-                >
-                  <option value="" disabled hidden>Selecciona Microterritorio...</option>
-                  {[1, 2, 3, 4].map((num) => (
-                    <option key={num} value={`MT0${num}`}>
-                      Microterritorio {num} (MT0{num})
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-3 text-[11px] text-slate-400 font-bold uppercase text-left">
-                  📍 Requerido para la ubicación exacta del hogar
-                </p>
-              </div>
 
               <div className="grid grid-cols-2 gap-4 w-full">
                 <button
-                  onClick={() => { setShowNewIdConfirm(false); setSelectedMicro(""); }}
+                  onClick={() => { setShowNewIdConfirm(false); }}
                   className="rounded-2xl border-2 border-slate-100 bg-white px-6 py-4 text-lg font-black text-slate-500 hover:bg-slate-50 hover:border-slate-200 transition-all cursor-pointer active:scale-95"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={() => {
-                    if (!selectedMicro) {
-                      toast.error("Por favor selecciona un microterritorio antes de iniciar")
-                      return
-                    }
                     setShowNewIdConfirm(false)
                     setIsWizardOpen(true)
                   }}
-                  disabled={!selectedMicro}
-                  className={`rounded-2xl px-6 py-4 text-lg font-black text-white transition-all active:scale-95 ${
-                    !selectedMicro 
-                      ? 'bg-slate-300 cursor-not-allowed opacity-70' 
-                      : 'bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/20 cursor-pointer'
-                  }`}
+                  className="rounded-2xl px-6 py-4 text-lg font-black text-white transition-all active:scale-95 bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/20 cursor-pointer"
                 >
                   Sí, iniciar
                 </button>

@@ -18,11 +18,9 @@ export default function Step2Vivienda() {
   const tieneAnimales = Array.isArray(animales) && animales.length > 0 && !animales.includes('9') && !animales.includes(9)
   const presenciaVectores = watch('presenciaVectores')
   const fuenteEnergia = watch('fuenteEnergia')
-  const numEBS = watch('numEBS')
+  const numEBS = watch('numEBS') || 'EBS00'
 
   useEffect(() => {
-    if (!numEBS) return
-
     const fetchConsecutivos = async () => {
       const currentHogar = getValues('numHogar')
       const currentFamilia = getValues('numFamilia')
@@ -120,28 +118,12 @@ export default function Step2Vivienda() {
 
       {/* Saneamiento */}
       <Sec title="Saneamiento Básico">
-        <Multi singleSelection label="Fuente de agua" options={FUENTE_AGUA} name="fuenteAgua" register={register} />
-        <Multi singleSelection label="Disposición de excretas" options={DISPOSICION_EXCRETAS} name="dispExcretas" register={register} />
-        <Multi singleSelection label="Aguas residuales" options={AGUAS_RESIDUALES} name="aguasResiduales" register={register} />
-        <Multi singleSelection label="Disposición de residuos" options={DISPOSICION_RESIDUOS} name="dispResiduos" register={register} />
-        <Multi singleSelection label="Riesgos de accidente" options={RIESGO_ACCIDENTE} name="riesgoAccidente" register={register} />
-        <F label="Fuente de energía para cocinar" required>
-          <div className="space-y-2">
-            <select {...register('fuenteEnergia')} className={sel}>
-              <option value="">— Selecciona —</option>
-              {FUENTE_ENERGIA.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-            </select>
-            {String(fuenteEnergia) === '9' && (
-              <div className="animate-in fade-in slide-in-from-top-1 duration-200">
-                <input 
-                  {...register('fuenteEnergiaOtro')} 
-                  placeholder="Especifique fuente de energía..." 
-                  className={`${inp} text-xs py-1.5 h-8 border-emerald-200 bg-emerald-50/30`} 
-                />
-              </div>
-            )}
-          </div>
-        </F>
+        <Multi singleSelection label="Fuente de agua" options={FUENTE_AGUA} name="fuenteAgua" register={register} required={true} />
+        <Multi singleSelection label="Disposición de excretas" options={DISPOSICION_EXCRETAS} name="dispExcretas" register={register} required={true} />
+        <Multi singleSelection label="Aguas residuales" options={AGUAS_RESIDUALES} name="aguasResiduales" register={register} required={true} />
+        <Multi singleSelection label="Disposición de residuos" options={DISPOSICION_RESIDUOS} name="dispResiduos" register={register} required={true} />
+        <Multi label="Riesgos de accidente" options={RIESGO_ACCIDENTE} name="riesgoAccidente" register={register} required={true} />
+        <Multi singleSelection label="Fuente de energía para cocinar" options={FUENTE_ENERGIA} name="fuenteEnergia" register={register} required={true} />
       </Sec>
 
       {/* Vectores */}

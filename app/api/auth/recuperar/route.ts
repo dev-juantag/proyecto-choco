@@ -59,16 +59,23 @@ export async function POST(req: Request) {
     const sent = await sendRecoveryEmail(email, code, primerNombre, isAdminRequest)
 
     if (!sent) {
-      // Simulación local si no hay SMTP configurado
-      if (!process.env.SMTP_USER) {
+      // Simulación local SÓLO si no hay SMTP configurado o tiene valores placeholder
+      const isPlaceholder =
+        !process.env.SMTP_USER ||
+        !process.env.SMTP_PASS ||
+        process.env.SMTP_USER === "your-email@gmail.com" ||
+        process.env.SMTP_PASS === "your-app-password";
+
+      if (isPlaceholder) {
+        console.log(`[SIMULACIÓN RECOVERY] Código para ${email}: ${code}`);
         return NextResponse.json(
-          { message: "Simulación local: El código es " + code },
+          { message: `Simulación local: El código de verificación es ${code}. (SMTP no configurado)` },
           { status: 200 }
         )
       }
 
       return NextResponse.json(
-        { error: "Error al enviar el correo electrónico. Intente más tarde." },
+        { error: "Error al enviar el correo electrónico. Intente más tarde o contacte al administrador." },
         { status: 500 }
       )
     }

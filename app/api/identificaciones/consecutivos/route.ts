@@ -6,11 +6,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
-    const numEBS = searchParams.get('numEBS')
-
-    if (!numEBS) {
-      return NextResponse.json({ success: false, error: 'numEBS requerido' }, { status: 400 })
-    }
+    const numEBS = searchParams.get('numEBS') || 'EBS00'
 
     // El prefijo puede ser EBS01 o T01 (dependiendo del formato de tu sistema), pero numEBS es EBS0X
     // Extraemos el código numérico para generar el formato T0X
@@ -28,29 +24,49 @@ export async function GET(req: Request) {
       }
     })
 
-    if (!lastFicha || !lastFicha.numHogar) {
-      return NextResponse.json({
-        success: true,
-        data: {
-          numHogar: `${prefixT}H0001`,
-          numFamilia: `${prefixT}H0001F0001`,
-          codFicha: `${prefixT}H0001F0001CF001`
-        }
-      })
+    let hogarIdx = 1
+    let famIdx = 1
+    let fichaIdx = 1
+
+    if (lastFicha && lastFicha.numHogar) {
+      const numHMatch = lastFicha.numHogar.match(/H(\d+)$/)
+      const numFMatch = lastFicha.numFamilia?.match(/F(\d+)$/)
+      const codFMatch = lastFicha.codFicha?.match(/CF(\d+)$/)
+
+      hogarIdx = numHMatch ? parseInt(numHMatch[1]) + 1 : 1
+      famIdx = numFMatch ? parseInt(numFMatch[1]) + 1 : 1
+      fichaIdx = codFMatch ? parseInt(codFMatch[1]) + 1 : 1
     }
 
-    // Extraemos digitos usando regex del último registro
-    const numHMatch = lastFicha.numHogar.match(/H(\d+)$/)
-    const numFMatch = lastFicha.numFamilia?.match(/F(\d+)$/)
-    const codFMatch = lastFicha.codFicha?.match(/CF(\d+)$/)
+    let nextHogar = `${prefixT}H${String(hogarIdx).padStart(4, '0')}`
+    let nextFamilia = `${nextHogar}F${String(famIdx).padStart(4, '0')}`
+    let nextFicha = `${nextFamilia}CF${String(fichaIdx).padStart(3, '0')}`
 
-    const hogarIdx = numHMatch ? parseInt(numHMatch[1]) + 1 : 1
-    const famIdx = numFMatch ? parseInt(numFMatch[1]) + 1 : 1
-    const fichaIdx = codFMatch ? parseInt(codFMatch[1]) + 1 : 1
-
-    const nextHogar = `${prefixT}H${String(hogarIdx).padStart(4, '0')}`
-    const nextFamilia = `${nextHogar}F${String(famIdx).padStart(4, '0')}`
-    const nextFicha = `${nextFamilia}CF${String(fichaIdx).padStart(3, '0')}`
+    // Bucle para garantizar unicidad absoluta en base de datos
+    let exists = true
+    let safetyCounter = 0
+    while (exists && safetyCounter < 1000) {
+      safetyCounter++
+      const conflict = await prisma.fichaHogar.findFirst({
+        where: {
+          OR: [
+            { numHogar: nextHogar },
+            { numFamilia: nextFamilia },
+            { codFicha: nextFicha }
+          ]
+        }
+      })
+      if (!conflict) {
+        exists = false
+      } else {
+        hogarIdx++
+        famIdx++
+        fichaIdx++
+        nextHogar = `${prefixT}H${String(hogarIdx).padStart(4, '0')}`
+        nextFamilia = `${nextHogar}F${String(famIdx).padStart(4, '0')}`
+        nextFicha = `${nextFamilia}CF${String(fichaIdx).padStart(3, '0')}`
+      }
+    }
 
     return NextResponse.json({
       success: true,

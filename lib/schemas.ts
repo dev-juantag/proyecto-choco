@@ -35,6 +35,13 @@ export const integranteSchema = z.object({
   talla: z.string().optional().nullable(),
   perimetroBraquial: z.string().optional().nullable(),
   diagNutricional: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
+  presionArterial: z.string().optional().nullable(),
+  frecuenciaCardiaca: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
+  frecuenciaRespiratoria: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
+  saturacionOxigeno: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
+  perimetroCefalico: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
+  tipoCancer: z.string().optional().nullable(),
+  riesgoMetalesPesados: z.any().optional().nullable(),
   practicaDeportiva: z.boolean().default(false),
   lactanciaMaterna: z.boolean().default(false),
   lactanciaMeses: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
@@ -64,8 +71,14 @@ export const integranteSchema = z.object({
     if (!data.sexo || data.sexo.trim() === "") {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['sexo'], message: 'El sexo es obligatorio' });
     }
+    
+    // Validar tipo de cáncer obligatorio si antecedente es CA
+    const hasCancer = data.antecedentes && data.antecedentes.CA === true;
+    if (hasCancer && (!data.tipoCancer || data.tipoCancer.trim() === "")) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['tipoCancer'], message: 'El tipo de cáncer es obligatorio' });
+    }
   } else {
-    // Si datosDesconocidos es true, solo validamos nombres y apellidos (según la respuesta del usuario)
+    // Si datosDesconocidos es true, solo validamos nombres y apellidos
     if (!data.nombres || data.nombres.trim() === "") {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['nombres'], message: 'Los nombres son obligatorios, incluso si no conoce los demás datos' });
     }
@@ -81,51 +94,60 @@ export const wizardSchema = z.object({
   uzpe: z.string().optional().nullable(),
   departamento: z.string().min(1, "El departamento es obligatorio"),
   municipio: z.string().min(1, "El municipio es obligatorio"),
-  centroPoblado: z.string().optional().nullable(),
+  centroPoblado: z.string().min(1, "El centro poblado o barrio es obligatorio"),
   direccion: z.string().min(1, "La dirección es obligatoria"),
-  latitud: z.union([z.number(), z.string()]).optional().nullable(),
-  longitud: z.union([z.number(), z.string()]).optional().nullable(),
+  latitud: z.union([z.number(), z.string()]).refine(v => v !== null && v !== undefined && String(v).trim() !== "", { message: "La latitud es obligatoria (georreferenciación)" }),
+  longitud: z.union([z.number(), z.string()]).refine(v => v !== null && v !== undefined && String(v).trim() !== "", { message: "La longitud es obligatoria (georreferenciación)" }),
   numEBS: z.string().optional().nullable(),
-  prestadorPrimario: z.string().optional().nullable(),
+  equipoTerritorio: z.string().min(1, "El equipo de territorio es obligatorio"),
   perfilEncuestador: z.string().min(1, "El perfil del encuestador es obligatorio"),
-  tipoDocEncuestador: z.string().optional().nullable(),
-  numDocEncuestador: z.string().optional().nullable(),
-  microterritorio: z.string().min(1, "El microterritorio es obligatorio"),
+  tipoDocEncuestador: z.string().min(1, "El tipo de documento del encuestador es obligatorio"),
+  numDocEncuestador: z.string().min(1, "El número de documento del encuestador es obligatorio"),
   observacionesRechazo: z.string().optional().nullable(),
   
   // Vivienda
   numHogar: z.string().optional().nullable(),
   numFamilia: z.string().optional().nullable(),
   codFicha: z.string().optional().nullable(),
-  tipoVivienda: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
+  tipoVivienda: z.union([z.string(), z.number()]).refine(v => v !== null && v !== undefined && String(v).trim() !== "", { message: "El tipo de vivienda es obligatorio" }).transform(v => String(v)),
   tipoViviendaDesc: z.string().optional().nullable(),
-  matParedes: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
-  matPisos: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
-  matTechos: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
-  numHogares: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
-  numDormitorios: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
-  estratoSocial: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
+  matParedes: z.union([z.string(), z.number()]).refine(v => v !== null && v !== undefined && String(v).trim() !== "", { message: "El material de las paredes es obligatorio" }).transform(v => String(v)),
+  matPisos: z.union([z.string(), z.number()]).refine(v => v !== null && v !== undefined && String(v).trim() !== "", { message: "El material de los pisos es obligatorio" }).transform(v => String(v)),
+  matTechos: z.union([z.string(), z.number()]).refine(v => v !== null && v !== undefined && String(v).trim() !== "", { message: "El material del techo es obligatorio" }).transform(v => String(v)),
+  numHogares: z.union([z.string(), z.number()]).refine(v => v !== null && v !== undefined && String(v).trim() !== "", { message: "El número de hogares es obligatorio" }).transform(v => String(v)),
+  numDormitorios: z.union([z.string(), z.number()]).refine(v => v !== null && v !== undefined && String(v).trim() !== "", { message: "El número de dormitorios es obligatorio" }).transform(v => String(v)),
+  estratoSocial: z.union([z.string(), z.number()]).refine(v => v !== null && v !== undefined && String(v).trim() !== "", { message: "El estrato socioeconómico es obligatorio" }).transform(v => String(v)),
   hacinamiento: z.boolean().default(false),
-  fuenteAgua: z.array(z.union([z.string(), z.number()]).transform(v => Number(v))).default([]),
-  dispExcretas: z.array(z.union([z.string(), z.number()]).transform(v => Number(v))).default([]),
-  aguasResiduales: z.array(z.union([z.string(), z.number()]).transform(v => Number(v))).default([]),
-  dispResiduos: z.array(z.union([z.string(), z.number()]).transform(v => Number(v))).default([]),
-  riesgoAccidente: z.array(z.union([z.string(), z.number()]).transform(v => Number(v))).default([]),
-  fuenteEnergia: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
+  fuenteAgua: z.array(z.union([z.string(), z.number()]).transform(v => Number(v))).min(1, "La fuente de agua es obligatoria"),
+  dispExcretas: z.array(z.union([z.string(), z.number()]).transform(v => Number(v))).min(1, "La disposición de excretas es obligatoria"),
+  aguasResiduales: z.array(z.union([z.string(), z.number()]).transform(v => Number(v))).min(1, "El manejo de aguas residuales es obligatorio"),
+  dispResiduos: z.array(z.union([z.string(), z.number()]).transform(v => Number(v))).min(1, "La disposición de residuos es obligatoria"),
+  riesgoAccidente: z.array(z.union([z.string(), z.number()]).transform(v => Number(v))).min(1, "El riesgo de accidente es obligatorio"),
+  fuenteEnergia: z.union([z.string(), z.number(), z.array(z.union([z.string(), z.number()]))])
+    .refine(v => {
+      if (Array.isArray(v)) return v.length > 0;
+      return v !== null && v !== undefined && String(v).trim() !== "";
+    }, { message: "La fuente de energía para cocinar es obligatoria" })
+    .transform(v => {
+      if (Array.isArray(v)) {
+        return v.length > 0 ? String(v[0]) : null;
+      }
+      return v ? String(v) : null;
+    }),
   presenciaVectores: z.union([z.boolean(), z.string()]).transform(v => v === true || v === 'true').default(false),
   animales: z.array(z.union([z.string(), z.number()]).transform(v => Number(v))).default([]),
   cantAnimales: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
   vacunacionMascotas: z.boolean().default(false),
   
   // Familia
-  tipoFamilia: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
-  numIntegrantes: z.string().default("1"),
+  tipoFamilia: z.union([z.string(), z.number()]).refine(v => v !== null && v !== undefined && String(v).trim() !== "", { message: "El tipo de familia es obligatorio" }).transform(v => String(v)),
+  numIntegrantes: z.string().refine(v => v !== null && v !== undefined && String(v).trim() !== "" && parseInt(v) > 0, { message: "El número de integrantes debe ser mayor a 0" }),
   apgar: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
   apgarRespuestas: z.array(z.union([z.number(), z.string()]).transform(v => Number(v))).default([]),
   ecomapa: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
   cuidadorPrincipal: z.boolean().default(false),
   zarit: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
-  vulnerabilidades: z.array(z.union([z.string(), z.number()]).transform(v => Number(v))).default([]),
+  vulnerabilidades: z.array(z.union([z.string(), z.number()]).transform(v => Number(v))).min(1, "Debe seleccionar al menos una opción de vulnerabilidad social (o 'Ninguna')"),
   
   integrantes: z.array(integranteSchema).default([]),
 }).superRefine((data, ctx) => {

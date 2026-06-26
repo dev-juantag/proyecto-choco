@@ -69,13 +69,7 @@ function getBoolean(val: string | undefined | null): boolean | null {
   return null
 }
 
-function normalizeMicro(val: string | null | undefined): string | null {
-  if (!val || val.trim() === '') return null
-  const v = val.trim()
-  const match = v.match(/^M(?:T)?(\d+)$/i)
-  if (match) return `MT${match[1].padStart(2, '0')}`
-  return v
-}
+
 
 function normalizeEstadoVisita(val: string): string {
   const v = (val || '').trim().toLowerCase()
@@ -206,7 +200,6 @@ export async function POST(req: Request) {
           departamento: get(h, 'Departamento', 'departamento') || 'CHOCO',
           municipio: get(h, 'municipio') || 'PAIMADO',
           territorioId,
-          microterritorio: normalizeMicro(get(h, 'codMicroterritorio', 'microterritorio')),
           direccion: get(h, 'direccion') || 'Sin dirección',
           descripcionUbicacion: get(h, 'descripcionUbicacion', 'descripcionubicacion') || null,
           centroPoblado: get(h, 'centropoblado', 'centroPoblado') || null,
@@ -217,7 +210,7 @@ export async function POST(req: Request) {
           encuestadorNombreRaw: nombreEnc || null,
           encuestadorDocRaw: docEnc || null,
           numEBS: get(h, 'nroIdentificacionEBS', 'numebs') || null,
-          prestadorPrimario: get(h, 'prestadorPrimario', 'prestadorprimario') || null,
+          equipoTerritorio: get(h, 'equipoTerritorio', 'equipoterritorio') || null,
           codFicha: codFicha || globalid || null,
           uzpe: get(h, 'codUzpe', 'coduzpe', 'uzpe') || null,
           numFamilia: get(h, 'numIdentificacionFamilia', 'numfamilia') || null,

@@ -43,15 +43,50 @@ const defaultIntegrante = {
   remisiones: [],
 }
 
+const fieldLabels: Record<string, string> = {
+  estadoVisita: 'Estado de visita', observacionesRechazo: 'Motivo de rechazo',
+  departamento: 'Departamento', municipio: 'Municipio', direccion: 'Dirección',
+  centroPoblado: 'Centro poblado', descripcionUbicacion: 'Descripción ubicación',
+  uzpe: 'UZPE', latitud: 'Latitud', longitud: 'Longitud',
+  numEBS: 'N° EBS', equipoTerritorio: 'Equipo de territorio',
+  fechaDiligenciamiento: 'Fecha de diligenciamiento',
+  tipoDocEncuestador: 'Tipo doc. encuestador', numDocEncuestador: 'N° doc. encuestador',
+  perfilEncuestador: 'Perfil encuestador',
+  tipoVivienda: 'Tipo de vivienda', matParedes: 'Material paredes',
+  matPisos: 'Material pisos', matTechos: 'Material techos',
+  numHogares: 'N° hogares', numDormitorios: 'N° dormitorios',
+  estratoSocial: 'Estrato social', hacinamiento: 'Hacinamiento',
+  fuenteAgua: 'Fuente de agua', dispExcretas: 'Disposición excretas',
+  aguasResiduales: 'Aguas residuales', dispResiduos: 'Disposición residuos',
+  riesgoAccidente: 'Riesgo de accidente', fuenteEnergia: 'Fuente de energía',
+  presenciaVectores: 'Presencia vectores', animales: 'Animales domésticos',
+  cantAnimales: 'Cantidad animales', vacunacionMascotas: 'Vacunación mascotas',
+  tipoFamilia: 'Tipo de familia', numIntegrantes: 'N° integrantes',
+  apgar: 'APGAR familiar', ecomapa: 'Ecomapa', cuidadorPrincipal: 'Cuidador principal',
+  zarit: 'Escala Zarit', vulnerabilidades: 'Vulnerabilidades',
+  // Integrante
+  primerNombre: 'Primer nombre', segundoNombre: 'Segundo nombre',
+  primerApellido: 'Primer apellido', segundoApellido: 'Segundo apellido',
+  tipoDoc: 'Tipo documento', numDoc: 'Número documento',
+  fechaNacimiento: 'Fecha de nacimiento', sexo: 'Género', parentesco: 'Parentesco',
+  gestante: 'Gestante', nivelEducativo: 'Nivel educativo', ocupacion: 'Ocupación',
+  regimen: 'Régimen', eapb: 'EAPB', etnia: 'Etnia',
+}
+
+const prettyLabel = (key: string) => {
+  // ej: "integrantes[0].primerNombre" o "integrantes.0.primerNombre" → "Integrante 1 · Primer nombre"
+  const m = key.match(/^integrantes(?:\[|\.)(\d+)(?:\]\.|\.)(.+)/)
+  if (m) return `Integrante ${parseInt(m[1]) + 1} → ${fieldLabels[m[2]] || m[2]}`
+  return fieldLabels[key] || key
+}
+
 export function IdentificacionesWizard({ 
   territorioId, 
-  microterritorio, 
   onClose, 
   onViewSaved,
   existingFicha
 }: { 
   territorioId: string | undefined, 
-  microterritorio: string, 
   onClose: () => void, 
   onViewSaved?: (id: string) => void,
   existingFicha?: any
@@ -90,11 +125,10 @@ export function IdentificacionesWizard({
           departamento: "CHOCO",
           municipio: "PAIMADO",
           numEBS: "",
-          prestadorPrimario: "SISTEMA INTEGRAL DE GESTIÓN POBLACIONAL",
+          equipoTerritorio: "",
           perfilEncuestador: user?.rol === "auxiliar" ? "auxiliar" : "otro",
           tipoDocEncuestador: "CC",
           numDocEncuestador: user?.documento || "",
-          microterritorio: microterritorio || "MT01",
           fuenteAgua: [],
           dispExcretas: [],
           aguasResiduales: [],
@@ -150,7 +184,7 @@ export function IdentificacionesWizard({
 
     const getFieldsForStep = (step: number): string[] => {
 
-      if (step === 1) return ["estadoVisita", "departamento", "municipio", "centroPoblado", "direccion", "numEBS", "prestadorPrimario", "tipoDocEncuestador", "numDocEncuestador", "perfilEncuestador"]
+      if (step === 1) return ["estadoVisita", "departamento", "municipio", "centroPoblado", "direccion", "numEBS", "equipoTerritorio", "tipoDocEncuestador", "numDocEncuestador", "perfilEncuestador", "latitud", "longitud"]
       if (step === 2) return ["numHogar", "numFamilia", "codFicha", "tipoVivienda", "tipoViviendaDesc", "matParedes", "matPisos", "matTechos", "numHogares", "numDormitorios", "estratoSocial", "hacinamiento", "fuenteAgua", "dispExcretas", "aguasResiduales", "dispResiduos", "riesgoAccidente", "fuenteEnergia", "presenciaVectores", "animales", "cantAnimales", "vacunacionMascotas"]
       if (step === 3) return ["tipoFamilia", "numIntegrantes", "apgar", "apgarRespuestas", "ecomapa", "cuidadorPrincipal", "zarit", "vulnerabilidades"]
       
@@ -160,10 +194,8 @@ export function IdentificacionesWizard({
         if (step === 4) {
           fields.push(
             `integrantes.${i}.id`,
-            `integrantes.${i}.primerNombre`,
-            `integrantes.${i}.segundoNombre`,
-            `integrantes.${i}.primerApellido`,
-            `integrantes.${i}.segundoApellido`,
+            `integrantes.${i}.nombres`,
+            `integrantes.${i}.apellidos`,
             `integrantes.${i}.tipoDoc`,
             `integrantes.${i}.numDoc`,
             `integrantes.${i}.fechaNacimiento`,
@@ -194,6 +226,13 @@ export function IdentificacionesWizard({
             `integrantes.${i}.talla`,
             `integrantes.${i}.perimetroBraquial`,
             `integrantes.${i}.diagNutricional`,
+            `integrantes.${i}.presionArterial`,
+            `integrantes.${i}.frecuenciaCardiaca`,
+            `integrantes.${i}.frecuenciaRespiratoria`,
+            `integrantes.${i}.saturacionOxigeno`,
+            `integrantes.${i}.perimetroCefalico`,
+            `integrantes.${i}.tipoCancer`,
+            `integrantes.${i}.riesgoMetalesPesados`,
             `integrantes.${i}.practicaDeportiva`,
             `integrantes.${i}.lactanciaMaterna`,
             `integrantes.${i}.lactanciaMeses`,
@@ -238,44 +277,6 @@ export function IdentificacionesWizard({
         return result
       }
       
-      // Mapa de nombre técnico → etiqueta en español
-      const fieldLabels: Record<string, string> = {
-        estadoVisita: 'Estado de visita', observacionesRechazo: 'Motivo de rechazo',
-        departamento: 'Departamento', municipio: 'Municipio', direccion: 'Dirección',
-        centroPoblado: 'Centro poblado', descripcionUbicacion: 'Descripción ubicación',
-        uzpe: 'UZPE', latitud: 'Latitud', longitud: 'Longitud',
-        numEBS: 'N° EBS', prestadorPrimario: 'Prestador primario',
-        fechaDiligenciamiento: 'Fecha de diligenciamiento',
-        tipoDocEncuestador: 'Tipo doc. encuestador', numDocEncuestador: 'N° doc. encuestador',
-        perfilEncuestador: 'Perfil encuestador',
-        tipoVivienda: 'Tipo de vivienda', matParedes: 'Material paredes',
-        matPisos: 'Material pisos', matTechos: 'Material techos',
-        numHogares: 'N° hogares', numDormitorios: 'N° dormitorios',
-        estratoSocial: 'Estrato social', hacinamiento: 'Hacinamiento',
-        fuenteAgua: 'Fuente de agua', dispExcretas: 'Disposición excretas',
-        aguasResiduales: 'Aguas residuales', dispResiduos: 'Disposición residuos',
-        riesgoAccidente: 'Riesgo de accidente', fuenteEnergia: 'Fuente de energía',
-        presenciaVectores: 'Presencia vectores', animales: 'Animales domésticos',
-        cantAnimales: 'Cantidad animales', vacunacionMascotas: 'Vacunación mascotas',
-        tipoFamilia: 'Tipo de familia', numIntegrantes: 'N° integrantes',
-        apgar: 'APGAR familiar', ecomapa: 'Ecomapa', cuidadorPrincipal: 'Cuidador principal',
-        zarit: 'Escala Zarit', vulnerabilidades: 'Vulnerabilidades',
-        // Integrante
-        primerNombre: 'Primer nombre', segundoNombre: 'Segundo nombre',
-        primerApellido: 'Primer apellido', segundoApellido: 'Segundo apellido',
-        tipoDoc: 'Tipo documento', numDoc: 'Número documento',
-        fechaNacimiento: 'Fecha de nacimiento', sexo: 'Género', parentesco: 'Parentesco',
-        gestante: 'Gestante', nivelEducativo: 'Nivel educativo', ocupacion: 'Ocupación',
-        regimen: 'Régimen', eapb: 'EAPB', etnia: 'Etnia',
-      }
-
-      const prettyLabel = (key: string) => {
-        // ej: "integrantes[0].primerNombre" o "integrantes.0.primerNombre" → "Integrante 1 · Primer nombre"
-        const m = key.match(/^integrantes(?:\[|\.)(\d+)(?:\]\.|\.)(.+)/)
-        if (m) return `Integrante ${parseInt(m[1]) + 1} → ${fieldLabels[m[2]] || m[2]}`
-        return fieldLabels[key] || key
-      }
-
       let explicitLogs: string[] = []
       
       const stepErrorFilter: any = {}
@@ -421,7 +422,14 @@ export function IdentificacionesWizard({
     }
 
     const logs = flattenErrors(errors)
-    setStepError(`El formulario contiene errores ocultos. Revisa:\n${logs.join("\n")}`)
+    if (logs.length > 0) {
+      setStepError(logs.map(e => {
+        const [fieldKey, ...rest] = e.split(': ')
+        return `${prettyLabel(fieldKey)}: ${rest.join(': ')}`
+      }).join('||'))
+    } else {
+      setStepError("Hay errores ocultos en los datos. Por favor revise todos los pasos del formulario.")
+    }
   }
 
   if (saved) {
@@ -481,7 +489,7 @@ export function IdentificacionesWizard({
                 </button>
                 <div>
                   <h1 className="font-bold text-base text-foreground tracking-tight leading-tight">Nueva Identificación</h1>
-                  <p className="text-xs text-muted-foreground font-semibold">Territorio: {numTerritorioStr} · Micro: {microterritorio.replace('MT', '')}</p>
+                  <p className="text-xs text-muted-foreground font-semibold">Territorio: {numTerritorioStr}</p>
                 </div>
               </div>
               <div
@@ -545,15 +553,30 @@ export function IdentificacionesWizard({
           {stepError && (
             <div className="mx-5 my-3 rounded-xl border border-destructive/30 bg-destructive/8 px-4 py-3">
               <p className="text-destructive text-xs font-black uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <span className="text-base">⚠️</span> Campos requeridos en este paso:
+                <span className="text-base">⚠️</span> Por favor complete los siguientes campos obligatorios:
               </p>
-              <ul className="flex flex-col gap-1">
-                {stepError.split('||').filter(Boolean).map((msg, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-destructive/90 font-semibold">
-                    <span className="mt-0.5 shrink-0">→</span>
-                    <span>{msg}</span>
-                  </li>
-                ))}
+              <ul className="flex flex-col gap-1.5">
+                {stepError.split('||').filter(Boolean).map((msg, i) => {
+                  const parts = msg.split(': ')
+                  if (parts.length > 1) {
+                    const fieldLabel = parts[0]
+                    const messageText = parts.slice(1).join(': ')
+                    return (
+                      <li key={i} className="flex items-start gap-1.5 text-xs text-destructive/90">
+                        <span className="mt-0.5 shrink-0 text-destructive font-black">→</span>
+                        <span>
+                          <strong className="font-bold text-destructive underline decoration-dotted">{fieldLabel}</strong>: {messageText}
+                        </span>
+                      </li>
+                    )
+                  }
+                  return (
+                    <li key={i} className="flex items-start gap-1.5 text-xs text-destructive/90 font-semibold">
+                      <span className="mt-0.5 shrink-0 text-destructive font-black">→</span>
+                      <span>{msg}</span>
+                    </li>
+                  )
+                })}
               </ul>
             </div>
           )}
@@ -575,7 +598,7 @@ export function IdentificacionesWizard({
                 type="button"
                 onClick={async () => {
                   if (estadoVisita !== '1') {
-                    const valid = await methods.trigger(['departamento', 'municipio', 'direccion', 'numEBS', 'prestadorPrimario', 'tipoDocEncuestador', 'numDocEncuestador', 'perfilEncuestador', 'observacionesRechazo'])
+                    const valid = await methods.trigger(['departamento', 'municipio', 'direccion', 'numEBS', 'equipoTerritorio', 'tipoDocEncuestador', 'numDocEncuestador', 'perfilEncuestador', 'observacionesRechazo'])
                     if (valid) onSubmit(methods.getValues() as any)
                     else onFormError(methods.formState.errors)
                   } else {

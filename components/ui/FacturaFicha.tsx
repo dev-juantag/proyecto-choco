@@ -95,7 +95,7 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
             <table className={`${tblCls} print:break-inside-avoid`}>
               <tbody>
                 <tr><Th>Municipio</Th><Td>{ficha.municipio}</Td></tr>
-                <tr><Th>Territorio / Micro</Th><Td>{typeof ficha.territorio === 'object' && ficha.territorio ? `${ficha.territorio.codigo} | ${ficha.territorio.nombre}` : (ficha.territorio || ficha.territorioId)} / {ficha.microterritorio}</Td></tr>
+                <tr><Th>Territorio</Th><Td>{typeof ficha.territorio === 'object' && ficha.territorio ? `${ficha.territorio.codigo} | ${ficha.territorio.nombre}` : (ficha.territorio || ficha.territorioId)}</Td></tr>
                 <tr><Th>Dirección</Th><Td>{ficha.direccion}</Td></tr>
                 <tr><Th>GPS</Th><Td className="font-sans text-xs">{(ficha.latitud != null && ficha.longitud != null) ? `Lat: ${Number(ficha.latitud).toFixed(7)}, Lng: ${Number(ficha.longitud).toFixed(7)}` : 'Sin coordenadas'}</Td></tr>
               </tbody>
@@ -118,7 +118,7 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
               <tbody>
                 <tr><Th>Estado de la Visita</Th><Td><span className="font-bold uppercase bg-gray-200 px-2 py-1 rounded">{getLabel(ESTADO_VISITA, ficha.estadoVisita)}</span></Td></tr>
                 <tr><Th>Fecha de Diligenciamiento</Th><Td>{new Date(ficha.fechaDiligenciamiento).toLocaleString('es-CO')}</Td></tr>
-                <tr><Th>Prestador Primario</Th><Td>{ficha.prestadorPrimario || 'N/A'}</Td></tr>
+                <tr><Th>Equipo de territorio</Th><Td>{ficha.equipoTerritorio || 'N/A'}</Td></tr>
                 <tr><Th>Código EBS (No. Identificación)</Th><Td>{ficha.numEBS || 'N/A'}</Td></tr>
                 <tr><Th>Responsable / Encuestador</Th><Td>{ficha.encuestador ? `${ficha.encuestador.nombre} ${ficha.encuestador.apellidos}` : (ficha.encuestadorNombreRaw || ficha.perfilEncuestador || 'N/A')}</Td></tr>
                 <tr><Th>Doc. Encuestador</Th><Td>{ficha.encuestador ? `${ficha.encuestador.documento}` : (ficha.encuestadorDocRaw || ficha.numDocEncuestador || 'N/A')}</Td></tr>
@@ -140,7 +140,7 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
               <tbody>
                 <tr><Th>Departamento</Th><Td>{ficha.departamento}</Td></tr>
                 <tr><Th>Municipio</Th><Td>{ficha.municipio}</Td></tr>
-                <tr><Th>Territorio / Micro</Th><Td>{typeof ficha.territorio === 'object' && ficha.territorio ? `${ficha.territorio.codigo} | ${ficha.territorio.nombre}` : (ficha.territorio || ficha.territorioId)} / {ficha.microterritorio}</Td></tr>
+                <tr><Th>Territorio</Th><Td>{typeof ficha.territorio === 'object' && ficha.territorio ? `${ficha.territorio.codigo} | ${ficha.territorio.nombre}` : (ficha.territorio || ficha.territorioId)}</Td></tr>
                 <tr><Th>Clase de Centro Poblado</Th><Td>{ficha.centroPoblado || 'N/A'}</Td></tr>
                 <tr><Th>Dirección</Th><Td>{ficha.direccion}</Td></tr>
                 <tr><Th>Descripción de Ubicación</Th><Td>{ficha.descripcionUbicacion || 'N/A'}</Td></tr>

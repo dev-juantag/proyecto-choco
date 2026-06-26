@@ -161,10 +161,10 @@ export default function Step4Integrantes() {
                     <input {...register(`integrantes.${i}.numDoc`)} disabled={watch(`integrantes.${i}.datosDesconocidos`)} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9a-zA-Z-]/g, ''); register(`integrantes.${i}.numDoc`).onChange(e); }} minLength={3} className={inp} />
                   </F>
                   <F label="Nombres" required>
-                    <input {...register(`integrantes.${i}.nombres`)} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ\s]/g, '').replace(/(^|\s)\S/g, c => c.toUpperCase()); register(`integrantes.${i}.nombres`).onChange(e); }} className={inp} placeholder="Nombres Completos" />
+                    <input {...register(`integrantes.${i}.nombres`)} autoComplete="off" onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ\s]/g, '').replace(/(^|\s)\S/g, c => c.toUpperCase()); register(`integrantes.${i}.nombres`).onChange(e); }} className={inp} placeholder="Nombres Completos" />
                   </F>
                   <F label="Apellidos" required>
-                    <input {...register(`integrantes.${i}.apellidos`)} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ\s]/g, '').replace(/(^|\s)\S/g, c => c.toUpperCase()); register(`integrantes.${i}.apellidos`).onChange(e); }} className={inp} placeholder="Apellidos Completos" />
+                    <input {...register(`integrantes.${i}.apellidos`)} autoComplete="off" onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ\s]/g, '').replace(/(^|\s)\S/g, c => c.toUpperCase()); register(`integrantes.${i}.apellidos`).onChange(e); }} className={inp} placeholder="Apellidos Completos" />
                   </F>
                   {!watch(`integrantes.${i}.datosDesconocidos`) ? (
                     <>

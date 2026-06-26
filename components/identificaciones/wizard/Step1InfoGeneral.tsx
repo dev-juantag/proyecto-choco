@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect } from 'react'
-
 import { useFormContext } from 'react-hook-form'
 import { Info, MapPin, Crosshair } from 'lucide-react'
+import useSWR from 'swr'
+import { fetcher } from '@/lib/fetcher'
 import { ESTADO_VISITA, TIPO_DOCUMENTO_ENCUESTADOR, PERFIL_ENCUESTADOR } from '@/lib/constants'
 import { inp, sel, card, cardBorder, lbl, lblStyle, required as reqStyle, chk, chkLabel, btnGreen, btnGreenStyle } from './wizardStyles'
 import MapLocationPicker from '@/components/ui/MapLocationPicker'
@@ -12,7 +13,11 @@ import { COLOMBIA_DIVIPOLA } from '@/lib/colombia'
 
 export default function Step1InfoGeneral() {
   const { register, setValue, watch } = useFormContext()
-  const { isSuperAdmin } = useAuth()
+  const { user, isSuperAdmin } = useAuth()
+
+  const { data: rawTerritorios } = useSWR("/api/territorios", fetcher)
+  const territorios = Array.isArray(rawTerritorios) ? rawTerritorios : []
+  const userTerritorio = user ? territorios.find((t: any) => t.id === user.territorioId) : null
 
   const handleGPS = () => {
     if (!navigator.geolocation) return
@@ -32,10 +37,47 @@ export default function Step1InfoGeneral() {
   const availableMunicipios = COLOMBIA_DIVIPOLA.find(d => normalizeStr(d.departamento) === selectedDeptNorm)?.municipios || []
 
   useEffect(() => {
-    if (!isSuperAdmin && !watch('perfilEncuestador')) {
-      setValue('perfilEncuestador', 'auxiliar')
+    setValue('estadoVisita', '1')
+    if (user) {
+      if (user.documento) setValue('numDocEncuestador', user.documento)
+      setValue('tipoDocEncuestador', 'CC')
+      if (user.rol) {
+        setValue('perfilEncuestador', user.rol === 'auxiliar' ? 'auxiliar' : 'profesional')
+      }
     }
-  }, [isSuperAdmin, setValue, watch])
+  }, [user, setValue])
+
+  useEffect(() => {
+    if (userTerritorio) {
+      setValue('equipoTerritorio', `${userTerritorio.nombre} (${userTerritorio.codigo})`)
+    } else if (user) {
+      setValue('equipoTerritorio', 'administrativo')
+    }
+  }, [userTerritorio, user, setValue])
+
+  // Obtener programas para mapear especialidad del profesional
+  const { data: rawProgramas } = useSWR("/api/programas", fetcher)
+  const programas = Array.isArray(rawProgramas) ? rawProgramas : []
+  const userPrograma = user ? programas.find((p: any) => p.id === user.programaId) : null
+
+  const getFriendlyPerfil = () => {
+    if (!user) return "Cargando...";
+    const rol = String(user.rol).toLowerCase();
+    if (rol === 'auxiliar') return "auxiliar de campo";
+    if (rol === 'profesional') {
+      const programa = userPrograma?.nombre
+        ? String(userPrograma.nombre)
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "") // remove accents if any to match user's plain style
+        : 'salud';
+      return `profesional en ${programa}`;
+    }
+    if (rol === 'superadmin') return "superadmin";
+    if (rol === 'admin') return "admin";
+    if (rol === 'facturador') return "facturador";
+    return rol;
+  };
 
   return (
     <div className="space-y-4">
@@ -47,9 +89,8 @@ export default function Step1InfoGeneral() {
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <F label="Estado de la Visita" required>
-            <select {...register('estadoVisita')} className={sel}>
-              {ESTADO_VISITA.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-            </select>
+            <input type="text" readOnly value="EFECTIVA" className={`${inp} bg-gray-100 cursor-not-allowed text-gray-600 font-bold`} />
+            <input type="hidden" {...register('estadoVisita')} />
           </F>
           <F label="Fecha de Diligenciamiento" required>
             <input type="date" max={new Date().toISOString().split('T')[0]} {...register('fechaDiligenciamiento')} className={inp} />
@@ -59,7 +100,7 @@ export default function Step1InfoGeneral() {
 
       {/* Ubicación */}
       <div className={card} style={cardBorder}>
-        <p className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5" style={{ color: '#081e69' }}>
+        <p className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5" style={{ color: '#0a8c32' }}>
           <MapPin className="w-3.5 h-3.5" style={{ color: '#0a8c32' }} /> Ubicación
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -89,12 +130,7 @@ export default function Step1InfoGeneral() {
               ))}
             </datalist>
           </F>
-          <F label="Territorio (Micro/Macro)" required>
-            <input {...register('microterritorio')} readOnly={!isSuperAdmin} className={`${inp} ${!isSuperAdmin ? 'bg-gray-100 cursor-not-allowed text-gray-600 font-bold' : ''}`} placeholder={isSuperAdmin ? "Ej: TER-10" : ""} />
-          </F>
-          <F label="UZPE">
-            <input {...register('uzpe')} placeholder="UZPE" readOnly={!isSuperAdmin} className={`${inp} ${!isSuperAdmin ? 'bg-gray-100 cursor-not-allowed text-gray-600 font-bold' : ''}`} />
-          </F>
+
           <F label="Centro Poblado / Barrio" required>
             <input {...register('centroPoblado')} placeholder="Nombre del sector" className={inp} />
           </F>
@@ -130,10 +166,10 @@ export default function Step1InfoGeneral() {
           />
 
           <div className="grid grid-cols-2 gap-3 mt-2">
-            <F label="Latitud (Auto)">
+            <F label="Latitud (Auto)" required>
               <input {...register('latitud')} readOnly placeholder="-6.123456" className={`${inp} bg-slate-100 font-mono text-xs cursor-not-allowed`} />
             </F>
-            <F label="Longitud (Auto)">
+            <F label="Longitud (Auto)" required>
               <input {...register('longitud')} readOnly placeholder="-75.123456" className={`${inp} bg-slate-100 font-mono text-xs cursor-not-allowed`} />
             </F>
           </div>
@@ -144,25 +180,21 @@ export default function Step1InfoGeneral() {
       <div className={card} style={cardBorder}>
         <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#081e69' }}>Responsable / Encuestador</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <F label="No. Identificación EBS" required>
-            <input {...register('numEBS')} readOnly={!isSuperAdmin} className={`${inp} ${!isSuperAdmin ? 'bg-gray-100 cursor-not-allowed text-gray-600 font-bold' : ''}`} />
-          </F>
-          <F label="Prestador Primario" required>
-            <input {...register('prestadorPrimario')} readOnly={!isSuperAdmin} className={`${inp} ${!isSuperAdmin ? 'bg-gray-100 cursor-not-allowed text-gray-600 font-bold' : ''}`} />
+          <F label="Equipo de territorio" required>
+            <input {...register('equipoTerritorio')} readOnly className={`${inp} bg-gray-100 cursor-not-allowed text-gray-600 font-bold`} />
           </F>
           <F label="Tipo Doc. Encuestador" required>
-            <select {...register('tipoDocEncuestador')} className={sel}>
+            <select {...register('tipoDocEncuestador')} disabled className={`${sel} bg-gray-100 cursor-not-allowed`}>
               <option value="">— Selecciona —</option>
               {TIPO_DOCUMENTO_ENCUESTADOR.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
             </select>
           </F>
           <F label="N° Doc. Encuestador" required>
-            <input {...register('numDocEncuestador')} readOnly={!isSuperAdmin} className={`${inp} ${!isSuperAdmin ? 'bg-gray-100 cursor-not-allowed text-gray-600 font-bold' : ''}`} />
+            <input {...register('numDocEncuestador')} readOnly className={`${inp} bg-gray-100 cursor-not-allowed text-gray-600 font-bold`} />
           </F>
-          <F label="Perfil Encuestador" required className="sm:col-span-2">
-            <select {...register('perfilEncuestador')} className={sel}>
-              {PERFIL_ENCUESTADOR.filter(o => o.id === 'auxiliar' || (isSuperAdmin && o.id === 'otro')).map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-            </select>
+          <F label="Perfil Encuestador" required>
+            <input type="text" readOnly value={getFriendlyPerfil()} className={`${inp} bg-gray-100 cursor-not-allowed text-gray-600 font-bold`} />
+            <input type="hidden" {...register('perfilEncuestador')} />
           </F>
           
           {estadoVisita !== '1' && (

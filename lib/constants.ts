@@ -1,9 +1,7 @@
 export const COMPANY_NAME = "Plataforma Gestion Poblacional";
 
 export const ESTADO_VISITA = [
-  { id: "1", label: "EFECTIVA" },
-  { id: "2", label: "NO EFECTIVA" },
-  { id: "3", label: "RECHAZADA / NEGADA" }
+  { id: "1", label: "EFECTIVA" }
 ];
 
 export const TIPO_VIVIENDA = [
@@ -96,8 +94,7 @@ export const RIESGO_ACCIDENTE = [
   { id: 5, label: "Presencia de minas o explosivos" },
   { id: 6, label: "Cercanía a cables de alta tensión" },
   { id: 7, label: "Estructuras de vivienda deterioradas" },
-  { id: 8, label: "Ninguno" },
-  { id: 9, label: "Otro" }
+  { id: 8, label: "Ninguno" }
 ];
 
 export const FUENTE_ENERGIA = [
@@ -169,7 +166,11 @@ export const VULNERABILIDADES = [
   { id: 3, label: "Pobreza extrema" },
   { id: 4, label: "Sin afiliación al sistema de salud" },
   { id: 5, label: "Analfabetismo" },
-  { id: 6, label: "Ninguna" }
+  { id: 6, label: "Falta de acceso a servicios de salud" },
+  { id: 7, label: "Exposición a contaminación ambiental o metales pesados" },
+  { id: 8, label: "Déficit en el acceso a la educación" },
+  { id: 9, label: "Deserción escolar" },
+  { id: 10, label: "Ninguna" }
 ];
 
 export const DIAGNOSTICO_NUTRICIONAL = [
@@ -201,14 +202,26 @@ export const REGIMEN_SALUD = [
 ];
 
 export const OCUPACION = [
-  { id: 1, label: "Agricultor / Pescador" },
-  { id: 2, label: "Ama de casa / Oficios del hogar" },
-  { id: 3, label: "Estudiante" },
-  { id: 4, label: "Empleado / Obrero" },
-  { id: 5, label: "Trabajador independiente" },
-  { id: 6, label: "Desempleado" },
-  { id: 7, label: "Jubilado / Pensionado" },
-  { id: 8, label: "Otro" }
+  { id: 1, label: "Agricultor / Campesino" },
+  { id: 2, label: "Pescador artesanal" },
+  { id: 3, label: "Minero artesanal" },
+  { id: 4, label: "Minero (formal)" },
+  { id: 5, label: "Maderero / Aprovechamiento forestal" },
+  { id: 6, label: "Comerciante" },
+  { id: 7, label: "Vendedor ambulante" },
+  { id: 8, label: "Transportador (Mototaxi / Taxi / Lancha)" },
+  { id: 9, label: "Empleado / Obrero" },
+  { id: 10, label: "Empleado público" },
+  { id: 11, label: "Trabajador independiente" },
+  { id: 12, label: "Artesano" },
+  { id: 13, label: "Constructor / Albañil" },
+  { id: 14, label: "Docente" },
+  { id: 15, label: "Profesional de la salud" },
+  { id: 16, label: "Estudiante" },
+  { id: 17, label: "Ama de casa / Oficios del hogar" },
+  { id: 18, label: "Desempleado" },
+  { id: 19, label: "Jubilado / Pensionado" },
+  { id: 20, label: "Otro" }
 ];
 
 export const TIPO_DOCUMENTO = [
@@ -224,7 +237,7 @@ export const TIPO_DOCUMENTO = [
 export const SEXO = [
   { id: "HOMBRE", label: "Hombre" },
   { id: "MUJER", label: "Mujer" },
-  { id: "INTERSEXUAL", label: "Intersexual" }
+  { id: "LGTBIQ+", label: "LGTBIQ+" }
 ];
 
 export const NIVEL_EDUCATIVO = [
@@ -310,7 +323,9 @@ export const INTERVENCIONES_PENDIENTES = [
   { id: 4, label: "Control de crecimiento y desarrollo" },
   { id: 5, label: "Control prenatal" },
   { id: 6, label: "Tamizaje de cáncer (Cuello uterino/Mama/Próstata)" },
-  { id: 7, label: "Ninguna" }
+  { id: 7, label: "Tamizaje de examen testicular" },
+  { id: 8, label: "PSA" },
+  { id: 9, label: "Ninguna" }
 ];
 
 export const REMISIONES_SISTEMA = [
@@ -321,6 +336,8 @@ export const REMISIONES_SISTEMA = [
   { id: "ENFERMERIA", label: "Enfermería" },
   { id: "NUTRICION", label: "Nutrición" },
   { id: "MEDICINA_ESPECIALIZADA", label: "Medicina Especializada" },
+  { id: "FISIOTERAPIA", label: "Fisioterapia" },
+  { id: "TERAPIA_RESPIRATORIA", label: "Terapia respiratoria" },
   { id: "NINGUNA", label: "Ninguna" }
 ];
 

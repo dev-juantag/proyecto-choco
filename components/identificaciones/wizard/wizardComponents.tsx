@@ -20,15 +20,19 @@ export function Multi({ label, options, name, register, required, singleSelectio
   const rawValues = watch(name)
   const values = Array.isArray(rawValues) ? rawValues : (rawValues ? [rawValues] : [])
   const otherName = `${name}Otro`
-  
-  // Identificar IDs especiales (Ninguno / Otro)
-  const NONE_IDS = [99, '99', 7, '7', 9, '9', 6, '6', 'ninguno', 'ninguna']
-  const OTHER_IDS = [9, '9', 7, '7', 5, '5', 8, '8', 12, '12', 6, '6']
 
-  const isNone = (id: any) => NONE_IDS.includes(id)
+  const isNone = (id: any) => {
+    const option = options.find(o => String(o.id) === String(id))
+    if (!option) return false
+    const lbl = option.label.toLowerCase()
+    return lbl === 'ninguno' || lbl === 'ninguna' || lbl.startsWith('ningun')
+  }
+
   const isOther = (id: any) => {
     const option = options.find(o => String(o.id) === String(id))
-    return OTHER_IDS.includes(id) && option?.label.toLowerCase().includes('otro')
+    if (!option) return false
+    const lbl = option.label.toLowerCase()
+    return lbl === 'otro' || lbl === 'otros'
   }
 
   const handleChange = (id: any, checked: boolean) => {
@@ -39,18 +43,19 @@ export function Multi({ label, options, name, register, required, singleSelectio
     }
 
     let newValues = Array.isArray(values) ? [...values] : []
+    const cleanId = typeof id === 'number' ? id : String(id)
     
     if (checked) {
       if (isNone(id)) {
         // Si marca ninguno, limpia todo lo demás
         newValues = [id]
       } else {
-        // Si marca cualquier otro, quita el 'ninguno'
+        // Si marca cualquier otro, quita los 'ninguno'
         newValues = newValues.filter(v => !isNone(v))
         newValues.push(id)
       }
     } else {
-      newValues = newValues.filter(v => String(v) !== String(id))
+      newValues = newValues.filter(v => String(v) !== String(id) && Number(v) !== Number(id))
     }
     
     setValue(name, newValues)
@@ -61,17 +66,20 @@ export function Multi({ label, options, name, register, required, singleSelectio
   return (
     <F label={label} required={required}>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 mt-1">
-        {options.map(o => (
-          <label key={o.id} className={chkLabel}>
-            <input 
-              type="checkbox" 
-              checked={values.includes(String(o.id)) || values.includes(Number(o.id))}
-              onChange={(e) => handleChange(o.id, e.target.checked)}
-              className={chk} 
-            />
-            <span className="text-xs leading-tight">{o.label}</span>
-          </label>
-        ))}
+        {options.map(o => {
+          const isChecked = values.some(v => String(v) === String(o.id))
+          return (
+            <label key={o.id} className={chkLabel}>
+              <input 
+                type="checkbox" 
+                checked={isChecked}
+                onChange={(e) => handleChange(o.id, e.target.checked)}
+                className={chk} 
+              />
+              <span className="text-xs leading-tight">{o.label}</span>
+            </label>
+          )
+        })}
       </div>
       {showOtherInput && (
         <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-200">

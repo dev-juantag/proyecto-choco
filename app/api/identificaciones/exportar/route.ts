@@ -106,8 +106,8 @@ export async function GET(request: Request) {
 
     const headers = [
       'globalid', 'consecutivo', 'estadoVisita', 'departamento', 'codMunicipio', 'municipio', 
-      'territorio', 'microterritorio', 'uzpe', 'centroPoblado', 'direccion', 'numEBS',
-      'prestadorPrimario', 'numHogar', 'numFamilia', 'codFicha', 'latitud', 'longitud',
+      'territorio', 'uzpe', 'centroPoblado', 'direccion', 'numEBS',
+      'equipoTerritorio', 'numHogar', 'numFamilia', 'codFicha', 'latitud', 'longitud',
       'fechaDiligenciamiento', 'encuestadorNombre', 'encuestadorDoc', 
       // VIVIENDA
       'tipoVivienda', 'matParedes', 'matPisos', 'matTechos', 'numHogares', 'numDormitorios', 
@@ -136,12 +136,11 @@ export async function GET(request: Request) {
         cleanCsv('66001'),
         cleanCsv(f.municipio),
         cleanCsv(f.territorio?.nombre || 'N/A'),
-        cleanCsv(f.microterritorio),
         cleanCsv(f.uzpe),
         cleanCsv(f.centroPoblado),
         cleanCsv(f.direccion),
         cleanCsv(f.numEBS),
-        cleanCsv(f.prestadorPrimario),
+        cleanCsv(f.equipoTerritorio),
         cleanCsv(f.numHogar),
         cleanCsv(f.numFamilia),
         cleanCsv(f.codFicha),
