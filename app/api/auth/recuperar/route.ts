@@ -22,11 +22,9 @@ export async function POST(req: Request) {
     })
 
     if (!unUsuario) {
-      // Por seguridad, para evitar enumeración, devolvemos éxito pero no enviamos nada
-      // O podemos avisar si el sistema es de uso interno controlado.
       return NextResponse.json(
-        { message: "Si el correo está registrado, recibirás un código en breve." },
-        { status: 200 }
+        { error: "El correo electrónico no está registrado en la plataforma." },
+        { status: 404 }
       )
     }
 

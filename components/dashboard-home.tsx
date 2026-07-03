@@ -47,6 +47,7 @@ import { fetcher } from "@/lib/fetcher"
 
 export function DashboardHome() {
   const { user, isAdmin, isFacturador } = useAuth()
+  const userRol = user?.rol?.toLowerCase() || ""
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
     setIsMounted(true);
@@ -155,8 +156,8 @@ export function DashboardHome() {
   const todayAtenciones = useMemo(() => filteredAtenciones.filter((a: any) => getLocalDateString(a.createdAtISO || a.fecha) === today), [filteredAtenciones, today])
   const misAtenciones = useMemo(() => filteredAtenciones.filter((a: any) => a.profesionalId === user?.id), [filteredAtenciones, user])
   
-  const profesionalesActivos = useMemo(() => usuarios.filter((u: any) => u.rol === "profesional" && u.activo !== false).length, [usuarios])
-  const auxiliaresActivos = useMemo(() => usuarios.filter((u: any) => u.rol === "auxiliar" && u.activo !== false).length, [usuarios])
+  const profesionalesActivos = useMemo(() => usuarios.filter((u: any) => u.rol?.toLowerCase() === "profesional" && u.activo !== false).length, [usuarios])
+  const auxiliaresActivos = useMemo(() => usuarios.filter((u: any) => u.rol?.toLowerCase() === "auxiliar" && u.activo !== false).length, [usuarios])
 
   const getProgramaById = (id: string) => programas.find((p: any) => p.id === id)
 
@@ -284,7 +285,7 @@ export function DashboardHome() {
     }
 
     if (!usuarios.length) return [];
-    const profs = usuarios.filter((u: any) => u.rol === "profesional" && u.activo !== false);
+    const profs = usuarios.filter((u: any) => u.rol?.toLowerCase() === "profesional" && u.activo !== false);
     
     const counts = profs.map((p: any) => {
       const atencionesProf = filteredAtenciones.filter((a: any) => a.profesionalId === p.id);
@@ -309,8 +310,14 @@ export function DashboardHome() {
   const misAtencionesMes = useMemo(() => misAtenciones.filter((a: any) => (a.createdAtISO || a.fecha).startsWith(currentMonthStr)), [misAtenciones, currentMonthStr]);
 
   const getKpis = () => {
-    if (user?.rol === "auxiliar") {
+    if (userRol === "auxiliar") {
       return [
+        {
+          label: "Mi Rol",
+          value: "Auxiliar",
+          icon: <Briefcase className="h-5 w-5" />,
+          color: "bg-indigo-100 text-indigo-600",
+        },
         {
           label: "Identificaciones (Territorio)",
           value: idStats?.kpis?.totalFichas || 0,
@@ -493,10 +500,10 @@ export function DashboardHome() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            Bienvenid@, {user?.nombre}
+            Hola, {user?.nombre}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {user?.rol === "auxiliar"
+            {userRol === "auxiliar"
               ? "Métricas y datos estadísticos focalizados en tu territorio asignado"
               : isAdmin
               ? "Resumen consolidado global del sistema"
@@ -505,7 +512,7 @@ export function DashboardHome() {
               : "Resumen institucional y personal de gestión de atenciones"}
           </p>
         </div>
-        {(user?.rol === "profesional" || user?.rol === "auxiliar") && userTerritory && (
+        {(userRol === "profesional" || userRol === "auxiliar") && userTerritory && (
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#097b2c]/10 text-[#097b2c] border border-[#097b2c]/30 rounded-full shadow-sm text-sm font-bold shrink-0 dark:bg-amber-950/30 dark:border-amber-900 dark:text-amber-500">
             <MapPin className="w-4 h-4" />
             Perteneces al territorio: {userTerritory.label} ({userTerritory.id})
@@ -531,7 +538,7 @@ export function DashboardHome() {
         ))}
       </div>
 
-      {idStats && (user?.rol === "auxiliar" || isAdmin || isEnfermeraJefe) && (
+      {idStats && (userRol === "auxiliar" || isAdmin || isEnfermeraJefe) && (
         <>
           <div className="flex items-center gap-2 mt-2 border-b border-border pb-2">
             <HeartPulse className="h-6 w-6 text-destructive" />
@@ -713,7 +720,7 @@ export function DashboardHome() {
                 ? "Distribución por Estado de Facturación" 
                 : isAdmin
                   ? "Atenciones por Programa Global"
-                  : user?.rol === "auxiliar" || isEnfermeraJefe 
+                  : userRol === "auxiliar" || isEnfermeraJefe 
                     ? "Estado de Identificaciones del Territorio" 
                     : "Mi Productividad Semanal (Atenciones)"}
             </h2>
@@ -722,7 +729,7 @@ export function DashboardHome() {
             ? chartDataFacturacion 
             : (isAdmin 
                 ? chartDataAtenciones 
-                : (user?.rol === "auxiliar" || isEnfermeraJefe 
+                : (userRol === "auxiliar" || isEnfermeraJefe 
                     ? chartDataIdAuxiliar 
                     : chartDataMisAtencionesDiarias))).length === 0 ? (
             <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
@@ -754,7 +761,7 @@ export function DashboardHome() {
           ) : (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-                <BarChart data={(isAdmin ? chartDataAtenciones : (user?.rol === "auxiliar" || isEnfermeraJefe ? chartDataIdAuxiliar : chartDataMisAtencionesDiarias)) as any[]} margin={{ top: 5, right: 10, left: -20, bottom: 40 }}>
+                <BarChart data={(isAdmin ? chartDataAtenciones : (userRol === "auxiliar" || isEnfermeraJefe ? chartDataIdAuxiliar : chartDataMisAtencionesDiarias)) as any[]} margin={{ top: 5, right: 10, left: -20, bottom: 40 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.90 0.02 285)" />
                   <XAxis
                     dataKey="nombre"
@@ -774,9 +781,9 @@ export function DashboardHome() {
                     }}
                   />
                   <Bar 
-                    dataKey={isAdmin ? "atenciones" : (user?.rol === "auxiliar" || isEnfermeraJefe ? "cantidad" : "atenciones")} 
-                    name={isAdmin ? "Atenciones" : (user?.rol === "auxiliar" || isEnfermeraJefe ? "Cantidad" : "Atenciones")} 
-                    fill={isAdmin ? "oklch(0.60 0.2 150)" : (user?.rol === "auxiliar" ? "oklch(0.50 0.18 285)" : "oklch(0.60 0.2 150)")} 
+                    dataKey={isAdmin ? "atenciones" : (userRol === "auxiliar" || isEnfermeraJefe ? "cantidad" : "atenciones")} 
+                    name={isAdmin ? "Atenciones" : (userRol === "auxiliar" || isEnfermeraJefe ? "Cantidad" : "Atenciones")} 
+                    fill={isAdmin ? "oklch(0.60 0.2 150)" : (userRol === "auxiliar" ? "oklch(0.50 0.18 285)" : "oklch(0.60 0.2 150)")} 
                     radius={[4, 4, 0, 0]} 
                   />
                 </BarChart>
@@ -827,26 +834,26 @@ export function DashboardHome() {
         ) : (
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
             <div className="mb-4 flex items-center gap-2">
-              {isFacturador ? <Clock className="h-5 w-5 text-primary" /> : (user?.rol === "auxiliar" || isEnfermeraJefe ? <Database className="h-5 w-5 text-primary" /> : <ClipboardList className="h-5 w-5 text-primary" />)}
+              {isFacturador ? <Clock className="h-5 w-5 text-primary" /> : (userRol === "auxiliar" || isEnfermeraJefe ? <Database className="h-5 w-5 text-primary" /> : <ClipboardList className="h-5 w-5 text-primary" />)}
               <h2 className="text-lg font-semibold text-foreground">
-                {isFacturador ? "Atenciones Pendientes por Facturar" : (user?.rol === "auxiliar" || isEnfermeraJefe
+                {isFacturador ? "Atenciones Pendientes por Facturar" : (userRol === "auxiliar" || isEnfermeraJefe
                   ? "Últimas Identificaciones del Territorio"
                   : `Atenciones recientes del programa`)}
               </h2>
             </div>
-            {(isFacturador ? recentPendingAtenciones : (user?.rol === "auxiliar" || isEnfermeraJefe ? recentIdentificaciones : recentAtenciones)).length === 0 ? (
+            {(isFacturador ? recentPendingAtenciones : (userRol === "auxiliar" || isEnfermeraJefe ? recentIdentificaciones : recentAtenciones)).length === 0 ? (
               <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
-                No hay {isFacturador ? "atenciones pendientes" : (user?.rol === "auxiliar" || isEnfermeraJefe ? "identificaciones" : "atenciones")} registradas.
+                No hay {isFacturador ? "atenciones pendientes" : (userRol === "auxiliar" || isEnfermeraJefe ? "identificaciones" : "atenciones")} registradas.
               </div>
             ) : (
               <ul className="flex flex-col gap-3">
-                {(isFacturador ? recentPendingAtenciones : (user?.rol === "auxiliar" || isEnfermeraJefe ? recentIdentificaciones : recentAtenciones)).map((a: any) => (
+                {(isFacturador ? recentPendingAtenciones : (userRol === "auxiliar" || isEnfermeraJefe ? recentIdentificaciones : recentAtenciones)).map((a: any) => (
                   <li
                     key={a.id}
                     className="flex items-center gap-4 rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors"
                   >
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                      {((user?.rol === "auxiliar" || isEnfermeraJefe) ? (a.direccion || "A") : a.pacienteNombre)
+                      {((userRol === "auxiliar" || isEnfermeraJefe) ? (a.direccion || "A") : a.pacienteNombre)
                         .split(" ")
                         .map((w: string) => w[0])
                         .join("")
@@ -855,17 +862,17 @@ export function DashboardHome() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">
-                        {(user?.rol === "auxiliar" || isEnfermeraJefe) ? a.direccion : a.pacienteNombre}
+                        {(userRol === "auxiliar" || isEnfermeraJefe) ? a.direccion : a.pacienteNombre}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {(user?.rol === "auxiliar" || isEnfermeraJefe)
+                        {(userRol === "auxiliar" || isEnfermeraJefe)
                           ? `Territorio: ${a.territorio} — ${getRelativeTime(a.fechaDiligenciamiento)}`
                           : (isFacturador 
                               ? `${getProgramaById(a.programaId)?.nombre || "Sin programa"} — ${getRelativeTime(a.createdAtISO, a.fecha)}`
                               : `Por: ${a.profesionalNombre}`)
                         }
                       </p>
-                      {((user?.rol === "auxiliar" || isEnfermeraJefe) && a.encuestador) && (
+                      {((userRol === "auxiliar" || isEnfermeraJefe) && a.encuestador) && (
                         <p className="text-[11px] text-muted-foreground/80 mt-0.5">
                           Por: <span className="font-medium text-foreground/80">{a.encuestador?.nombre} {a.encuestador?.apellidos}</span> - <span>C.C. {a.encuestador?.documento || 'No disp.'}</span>
                         </p>
@@ -949,7 +956,7 @@ export function DashboardHome() {
       )}
 
       {/* Top 10 Profesionales */}
-      {user?.rol !== "auxiliar" && !isFacturador && (
+      {userRol !== "auxiliar" && !isFacturador && (
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm mx-auto w-full lg:w-3/4 xl:w-2/3">
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2">

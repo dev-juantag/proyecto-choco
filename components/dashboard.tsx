@@ -85,7 +85,7 @@ export function Dashboard() {
   navItems.push({ id: "identificaciones", label: "Identificaciones", icon: <Database className="h-5 w-5" /> })
 
   if (userRol === "profesional" || userRol === "auxiliar") {
-    navItems.push({ id: "mi-territorio", label: "Mi Territorio", icon: <MapPinned className="h-5 w-5" /> })
+    navItems.push({ id: "mi-territorio", label: "Mi equipo", icon: <Users className="h-5 w-5" /> })
   }
 
   if (isAdmin || userRol === "superadmin") {

@@ -24,9 +24,9 @@ export function IdentificacionesModule() {
   const [page, setPage] = useState(1)
   const limit = 25
 
-  const [myIdentifications, setMyIdentifications] = useState(false)
+  const [filtroAmbito, setFiltroAmbito] = useState<"territorio" | "mis-id" | "todas">("territorio")
   
-  const apiUrl = user ? `/api/identificaciones?role=${user.rol}&territorioId=${user.territorioId || ''}&page=${page}&limit=${limit}${activeSearch ? `&search=${encodeURIComponent(activeSearch)}` : ''}${myIdentifications ? '&myOnly=true' : ''}` : null
+  const apiUrl = user ? `/api/identificaciones?role=${user.rol}&territorioId=${user.territorioId || ''}&page=${page}&limit=${limit}${activeSearch ? `&search=${encodeURIComponent(activeSearch)}` : ''}${filtroAmbito === "mis-id" ? '&myOnly=true' : ''}${filtroAmbito === "todas" ? '&global=true' : ''}` : null
   const { data: rawFichas, isLoading: loading, mutate: mutateFichas } = useSWR<any>(apiUrl, fetcher)
   
   const { data: rawProgramas } = useSWR<any>("/api/programas", fetcher)
@@ -452,18 +452,19 @@ export function IdentificacionesModule() {
               <option value="3">Rechazadas / Negadas</option>
             </select>
 
-            {isAuxiliar && (
-              <button
-                onClick={() => { setMyIdentifications(!myIdentifications); setPage(1); }}
-                className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-sm font-bold border transition-all flex items-center justify-center gap-2 ${
-                  myIdentifications 
-                    ? 'bg-primary text-primary-foreground border-primary shadow-sm' 
-                    : 'bg-background text-foreground border-border hover:bg-muted'
-                }`}
+            {(isAuxiliar || isProfesional) && (
+              <select
+                className="flex-1 sm:flex-none px-3 py-2.5 border rounded-xl text-sm font-semibold bg-background border-input outline-none focus:ring-2 focus:ring-primary min-w-[100px]"
+                value={filtroAmbito}
+                onChange={e => {
+                  setFiltroAmbito(e.target.value as any)
+                  setPage(1)
+                }}
               >
-                <Users className="w-4 h-4" />
-                <span className="whitespace-nowrap">{myIdentifications ? "Mis ID" : "Mis ID"}</span>
-              </button>
+                <option value="territorio">Mi equipo</option>
+                <option value="mis-id">Mis ID</option>
+                <option value="todas">Otras ID</option>
+              </select>
             )}
           </div>
         </div>
@@ -486,11 +487,11 @@ export function IdentificacionesModule() {
           <div className="h-48 flex flex-col justify-center items-center text-muted-foreground text-sm p-8 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
             <ShieldAlert className="w-10 h-10 mb-4 opacity-40 text-orange-500" />
             <p className="font-black text-lg text-foreground mb-1 tracking-tight">
-              {myIdentifications ? "Aún no has creado identificaciones" : "No existen fichas registradas"}
+              {filtroAmbito === "mis-id" ? "Aún no has creado identificaciones" : "No existen fichas registradas"}
             </p>
             <p className="max-w-md text-muted-foreground font-medium">
-              {myIdentifications 
-                ? "Bajo tu usuario no se registran fichas en este territorio. ¡Haz clic en el botón superior para comenzar la primera!"
+              {filtroAmbito === "mis-id"
+                ? "Bajo tu usuario no se registran fichas. ¡Haz clic en el botón superior para comenzar la primera!"
                 : "No se encontraron resultados disponibles para los filtros aplicados bajo este perfil de acceso."}
             </p>
           </div>

@@ -27,28 +27,33 @@ export async function GET(req: Request) {
     });
 
     let whereClause: any = {}
+    const isGlobal = searchParams.get('global') === 'true'
+    const searchStr = searchParams.get('search')
 
     // Si es superadmin o admin, ve todo el historial (a menos que pase un filtro de territorio explícito).
     if (userRole === 'SUPERADMIN' || userRole === 'ADMIN') {
       if (requestedTerritorioId) whereClause.territorioId = requestedTerritorioId
     } else {
       // Para roles normales, forzar filtro estricto por Territorio y por FECHA (solo historial de esta etapa)
-      if (userRole === 'FACTURADOR') {
-        const assignedTIds = currentUser?.territoriosAsignados?.map((t: any) => t.id) || [];
-        if (assignedTIds.length > 0) {
-          whereClause.territorioId = { in: assignedTIds };
-        } else if (currentUser?.territorioId) {
-          whereClause.territorioId = currentUser.territorioId;
-        }
-      } else if (userRole === 'AUXILIAR' || userRole === 'PROFESIONAL') {
-        // Forzar el territorio asignado al usuario para estos roles
-        if (currentUser?.territorioId) {
-          whereClause.territorioId = currentUser.territorioId;
+      // Si hay un término de búsqueda o es una consulta global explícita, se omite el filtro por territorio.
+      if (!isGlobal && !searchStr) {
+        if (userRole === 'FACTURADOR') {
+          const assignedTIds = currentUser?.territoriosAsignados?.map((t: any) => t.id) || [];
+          if (assignedTIds.length > 0) {
+            whereClause.territorioId = { in: assignedTIds };
+          } else if (currentUser?.territorioId) {
+            whereClause.territorioId = currentUser.territorioId;
+          }
+        } else if (userRole === 'AUXILIAR' || userRole === 'PROFESIONAL') {
+          // Forzar el territorio asignado al usuario para estos roles
+          if (currentUser?.territorioId) {
+            whereClause.territorioId = currentUser.territorioId;
+          } else if (requestedTerritorioId) {
+            whereClause.territorioId = requestedTerritorioId;
+          }
         } else if (requestedTerritorioId) {
-          whereClause.territorioId = requestedTerritorioId;
+          whereClause.territorioId = requestedTerritorioId
         }
-      } else if (requestedTerritorioId) {
-        whereClause.territorioId = requestedTerritorioId
       }
       
       const settings = await prisma.systemSettings.findFirst()
@@ -62,7 +67,6 @@ export async function GET(req: Request) {
       whereClause.encuestadorId = userId
     }
 
-    const searchStr = searchParams.get('search')
     if (searchStr) {
       whereClause.OR = [
         { direccion: { contains: searchStr, mode: 'insensitive' } },

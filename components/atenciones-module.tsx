@@ -1007,7 +1007,12 @@ function AtencionForm({
 
     setIsSearchingPaciente(true)
     try {
-      const res = await fetch(`/api/pacientes/buscar?doc=${documentoPaciente.trim()}`)
+      const token = localStorage.getItem("gestion-poblacional-token")
+      const res = await fetch(`/api/pacientes/buscar?doc=${documentoPaciente.trim()}`, {
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        }
+      })
       if (res.ok) {
         const result = await res.json()
         if (result.found) {
