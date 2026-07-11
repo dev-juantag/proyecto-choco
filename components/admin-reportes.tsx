@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import useSWR, { mutate } from "swr"
 import { fetcher } from "@/lib/fetcher"
 import {
@@ -35,7 +35,9 @@ import {
   Briefcase,
   Layers,
   Home,
-  Stethoscope
+  Stethoscope,
+  ClipboardList,
+  Calendar
 } from "lucide-react"
 import { CONFIG } from "@/lib/config"
 
@@ -52,6 +54,12 @@ const COLORS = [
 ]
 
 export function AdminReportes() {
+  const [isMounted, setIsMounted] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setIsMounted(true), 150);
+    return () => clearTimeout(timer);
+  }, [])
+
   const [activeTab, setActiveTab] = useState<"atenciones" | "identificaciones">("atenciones")
   const [filterMode, setFilterMode] = useState<"etapa" | "fechas" | "todo">("etapa")
   const [dateRange, setDateRange] = useState({ 
@@ -239,19 +247,147 @@ export function AdminReportes() {
           }`}
         >
           <FileText className="h-4 w-4" />
-          Reporte Poblacional (ID)
+          Reporte Poblacional (Equipos)
         </button>
       </div>
 
-      {loading && (
+      {(loading || !isMounted) && (
         <div className="flex w-full items-center justify-center p-20 text-muted-foreground text-sm flex-col gap-4">
           <RefreshCcw className="h-8 w-8 animate-spin text-primary" />
           Procesando grandes volúmenes de datos territoriales...
         </div>
       )}
 
-      {!loading && activeTab === "atenciones" && (
+      {!loading && isMounted && activeTab === "atenciones" && (
         <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-6">
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-500">
+                <ClipboardList className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Total Atenciones</p>
+                <h3 className="text-xl font-black text-foreground truncate">{idStats?.atencionesKpis?.totalAtenciones || 0}</h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-500">
+                <Users className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Personas Atendidas</p>
+                <h3 className="text-xl font-black text-foreground truncate">{idStats?.atencionesKpis?.personasAtendidas || 0}</h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-500">
+                <TrendingUp className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Cobertura de Atención</p>
+                <h3 className="text-xl font-black text-foreground truncate">
+                  {(idStats?.atencionesKpis?.coberturaAtencion || 0).toFixed(1)}%
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-500">
+                <Layers className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Programas Activos</p>
+                <h3 className="text-xl font-black text-foreground truncate">
+                  {atencionesPerPrograma.filter(p => p.atenciones > 0).length || 0}
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-950/30 dark:text-violet-500">
+                <Activity className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Profesionales Activos</p>
+                <h3 className="text-xl font-black text-foreground truncate">
+                  {atencionesPerProfesional.filter(p => p.atenciones > 0).length || 0}
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-500">
+                <Home className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Equipos c/ Atenciones</p>
+                <h3 className="text-xl font-black text-foreground truncate">
+                  {facturacionStats.filter(t => t.total > 0).length || 0}
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600 dark:bg-orange-950/30 dark:text-orange-500">
+                <Calendar className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Meses con Registros</p>
+                <h3 className="text-xl font-black text-foreground truncate">
+                  {idStats?.atencionesKpis?.porMes?.length || 0}
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600 dark:bg-teal-950/30 dark:text-teal-500">
+                <Baby className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Etarios Atendidos</p>
+                <h3 className="text-xl font-black text-foreground truncate">
+                  {idStats?.atencionesKpis?.porCursoVida?.length || 0}
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-500">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Personas sin Atención</p>
+                <h3 className="text-xl font-black text-destructive truncate">
+                  {idStats?.atencionesKpis?.personasSinAtencion || 0}
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-yellow-50 text-yellow-600 dark:bg-yellow-950/30 dark:text-yellow-500">
+                <ShieldAlert className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Remisiones (P/EP/C)</p>
+                <h3 className="text-xs font-bold text-foreground truncate">
+                  P: {idStats?.atencionesKpis?.remisionesPendientes || 0} | EP: {idStats?.atencionesKpis?.remisionesEnProceso || 0} | C: {idStats?.atencionesKpis?.remisionesCerradas || 0}
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/30 dark:text-purple-500">
+                <Activity className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Seguimientos Realizados</p>
+                <h3 className="text-xl font-black text-foreground truncate">{idStats?.atencionesKpis?.seguimientos || 0}</h3>
+              </div>
+            </div>
+          </div>
+
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Bar Chart */}
             <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
@@ -260,7 +396,7 @@ export function AdminReportes() {
                 <h2 className="text-lg font-semibold text-foreground">Atenciones por Programa</h2>
               </div>
               <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                <ResponsiveContainer width="100%" height={320}>
                   <BarChart data={atencionesPerPrograma} margin={{ top: 5, right: 10, left: -10, bottom: 60 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.90 0.02 285)" />
                     <XAxis dataKey="nombre" tick={{ fontSize: 11 }} angle={-40} textAnchor="end" height={80} interval={0} />
@@ -282,7 +418,7 @@ export function AdminReportes() {
                 {facturacionStats.filter(t => t.total > 0).length === 0 ? (
                   <div className="flex h-full w-full items-center justify-center text-muted-foreground text-sm">Sin registros</div>
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                  <ResponsiveContainer width="100%" height={320}>
                     <BarChart data={facturacionStats.filter(t => t.total > 0).slice(0, 10)} margin={{ top: 5, right: 10, left: -10, bottom: 60 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.90 0.02 285)" />
                       <XAxis dataKey="nombre" tick={{ fontSize: 10 }} angle={-40} textAnchor="end" height={80} interval={0} />
@@ -296,226 +432,193 @@ export function AdminReportes() {
             </div>
           </div>
 
-          {/* Detailed Table */}
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-             <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                  <Target className="h-5 w-5 text-primary" />
-                  <h2 className="text-lg font-semibold text-foreground">Metas Institucionales</h2>
-                </div>
-                <div className="flex items-center bg-muted/40 p-1 rounded-lg">
-                  <button 
-                    onClick={() => setVistaTablet("programa")}
-                    className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${vistaTablet === "programa" ? "bg-background shadow text-foreground" : "text-muted-foreground"}`}
-                  >Por Programa</button>
-                  <button 
-                    onClick={() => setVistaTablet("profesional")}
-                    className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${vistaTablet === "profesional" ? "bg-background shadow text-foreground" : "text-muted-foreground"}`}
-                  >Por Profesional</button>
-                </div>
-             </div>
-             
-             <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/20">
-                      <th className="px-4 py-4 text-left font-bold text-foreground">Descripción</th>
-                      {vistaTablet === "profesional" && <th className="px-4 py-4 text-left">Programa</th>}
-                      <th className="px-4 py-4 text-center">Registros</th>
-                      {filterMode === "etapa" && (
-                        <>
-                          <th className="px-4 py-4 text-center">Meta</th>
-                          <th className="px-4 py-4 text-center">Cumplimiento</th>
-                          <th className="px-4 py-4 text-left">Progreso</th>
-                        </>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(vistaTablet === "programa" ? atencionesPerPrograma : atencionesPerProfesional).map((item) => (
-                      <tr key={item.id} className="border-b border-border hover:bg-muted/10">
-                        <td className="px-4 py-4 font-medium">{item.nombre}</td>
-                        {vistaTablet === "profesional" && <td className="px-4 py-4 text-muted-foreground">{(item as any).programa}</td>}
-                        <td className="px-4 py-4 text-center font-bold">{item.atenciones}</td>
-                        {filterMode === "etapa" && (
-                          <>
-                            <td className="px-4 py-4 text-center text-muted-foreground">{item.meta}</td>
-                            <td className="px-4 py-4 text-center">
-                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${Number(item.porcentaje) >= 100 ? "bg-emerald-100 text-emerald-700" : Number(item.porcentaje) >= 50 ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700"}`}>
-                                {item.porcentaje}%
-                              </span>
-                            </td>
-                            <td className="px-4 py-4">
-                              <div className="h-2 w-32 rounded-full bg-muted overflow-hidden">
-                                <div 
-                                  className={`h-full transition-all ${Number(item.porcentaje) >= 100 ? "bg-emerald-500" : "bg-primary"}`} 
-                                  style={{ width: `${Math.min(100, Number(item.porcentaje))}%` }} 
-                                />
-                              </div>
-                            </td>
-                          </>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-             </div>
-          </div>
-
-          {/* Estadísticas de Facturación por Territorio */}
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col gap-6">
-            <div className="flex items-center gap-2">
-               <Activity className="h-5 w-5 text-primary" />
-               <h2 className="text-lg font-semibold text-foreground">Control de Facturación por Territorio</h2>
-            </div>
-            
-            <div className="h-80">
-               <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-                 <BarChart data={facturacionStats.filter(t => t.total > 0)} margin={{ top: 20, right: 30, left: 0, bottom: 50 }}>
-                   <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.90 0.02 285)" vertical={false} />
-                   <XAxis dataKey="codigo" tick={{ fontSize: 11 }} angle={-35} textAnchor="end" height={60} />
-                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                   <Tooltip 
-                     contentStyle={{ backgroundColor: "var(--card)", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }}
-                   />
-                   <Legend verticalAlign="top" height={36} />
-                   <Bar dataKey="facturadas" name="Facturadas/SAFIX" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} />
-                   <Bar dataKey="pendientes" name="Pendientes" stackId="a" fill="#f59e0b" />
-                   <Bar dataKey="devueltas" name="Devueltas/No Facturables" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                 </BarChart>
-               </ResponsiveContainer>
-            </div>
-
-            <div className="overflow-x-auto rounded-lg border border-border">
-               <table className="w-full text-sm">
-                 <thead className="bg-muted/30">
-                   <tr>
-                     <th className="px-4 py-3 text-left font-bold border-b">Territorio</th>
-                     <th className="px-4 py-3 text-center font-bold border-b">Total Atenciones</th>
-                     <th className="px-4 py-3 text-center font-bold border-b text-emerald-600 dark:text-emerald-500">Facturadas</th>
-                     <th className="px-4 py-3 text-center font-bold border-b text-amber-600 dark:text-amber-500">Pendientes</th>
-                     <th className="px-4 py-3 text-center font-bold border-b text-rose-600 dark:text-rose-500">Objeciones</th>
-                   </tr>
-                 </thead>
-                 <tbody>
-                   {facturacionStats.map(t => (
-                     <tr key={t.id} className="border-b last:border-0 hover:bg-muted/10">
-                       <td className="px-4 py-3 font-medium">
-                         <div className="flex flex-col">
-                           <span>{t.nombre}</span>
-                           <span className="text-[10px] text-muted-foreground">{t.codigo}</span>
-                         </div>
-                       </td>
-                       <td className="px-4 py-3 text-center font-black">{t.total}</td>
-                       <td className="px-4 py-3 text-center font-semibold text-emerald-600 dark:text-emerald-500">{t.facturadas}</td>
-                       <td className="px-4 py-3 text-center font-semibold text-amber-600 dark:text-amber-500">{t.pendientes}</td>
-                       <td className="px-4 py-3 text-center font-semibold text-rose-600 dark:text-rose-500">{t.devueltas}</td>
-                     </tr>
-                   ))}
-                   {facturacionStats.length === 0 && (
-                     <tr>
-                       <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground italic">
-                         No hay registros mapeables a un territorio.
-                       </td>
-                     </tr>
-                   )}
-                 </tbody>
-               </table>
-            </div>
-          </div>
         </>
       )}
 
       {/* REPORTE POBLACIONAL (ID) - NEW MODULE */}
-      {!loading && activeTab === "identificaciones" && idStats && (
+      {!loading && isMounted && activeTab === "identificaciones" && idStats && (
         <div className="flex flex-col gap-6">
           {/* Main Indicators Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4 mb-6">
-            <div className="bg-card border border-border p-5 rounded-2xl shadow-sm relative overflow-hidden group">
-               <div className="flex items-center justify-between mb-3">
-                 <div className="p-2.5 bg-blue-100 text-blue-600 rounded-xl"><Home className="h-5 w-5" /></div>
-                 <span className="text-[10px] text-blue-600 font-black uppercase">Consolidado</span>
-               </div>
-               <p className="text-xs text-muted-foreground font-medium mb-0.5">Total Hogares</p>
-               <h3 className="text-3xl font-black text-foreground tabular-nums">{idStats?.kpis?.totalFichas || 0}</h3>
-               <div className="absolute -right-4 -bottom-4 h-20 w-20 text-blue-500/5 group-hover:text-blue-500/10 transition-colors"><Home className="h-full w-full" /></div>
+          {/* Main Indicators Grid - 17 KPIs */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-6">
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-500">
+                <Home className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Total Hogares</p>
+                <h3 className="text-xl font-black text-foreground truncate">{idStats?.kpis?.totalFichas || 0}</h3>
+              </div>
             </div>
 
-            <div className="bg-card border border-border p-5 rounded-2xl shadow-sm relative overflow-hidden group">
-               <div className="flex items-center justify-between mb-3">
-                 <div className="p-2.5 bg-indigo-100 text-indigo-600 rounded-xl"><Users className="h-5 w-5" /></div>
-                 <span className="text-[10px] text-indigo-600 font-black uppercase">Población</span>
-               </div>
-               <p className="text-xs text-muted-foreground font-medium mb-0.5">Total Personas</p>
-               <h3 className="text-3xl font-black text-foreground tabular-nums">{idStats?.kpis?.totalPacientes || 0}</h3>
-               <div className="absolute -right-4 -bottom-4 h-20 w-20 text-indigo-500/5 group-hover:text-indigo-500/10 transition-colors"><Users className="h-full w-full" /></div>
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-500">
+                <Users className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Total Personas</p>
+                <h3 className="text-xl font-black text-foreground truncate">{idStats?.kpis?.totalPacientes || 0}</h3>
+              </div>
             </div>
 
-            <div className="bg-card border border-border p-5 rounded-2xl shadow-sm relative overflow-hidden group">
-               <div className="flex items-center justify-between mb-3">
-                 <div className="p-2.5 bg-rose-100 text-rose-600 rounded-xl"><HeartPulse className="h-5 w-5" /></div>
-                 <span className="text-[10px] text-rose-600 font-black uppercase">Maternidad</span>
-               </div>
-               <p className="text-xs text-muted-foreground font-medium mb-0.5">Gestantes Activas</p>
-               <h3 className="text-3xl font-black text-foreground tabular-nums">{idStats?.kpis?.gestantes || 0}</h3>
-               <div className="absolute -right-4 -bottom-4 h-20 w-20 text-rose-500/5 group-hover:text-rose-500/10 transition-colors"><HeartPulse className="h-full w-full" /></div>
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-500">
+                <Users className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Pers. por Hogar</p>
+                <h3 className="text-xl font-black text-foreground truncate">
+                  {(idStats?.kpis?.totalPacientes / (idStats?.kpis?.totalFichas || 1)).toFixed(1)}
+                </h3>
+              </div>
             </div>
 
-            <div className="bg-card border border-border p-5 rounded-2xl shadow-sm relative overflow-hidden group">
-               <div className="flex items-center justify-between mb-3">
-                 <div className="p-2.5 bg-orange-100 text-orange-600 rounded-xl"><Activity className="h-5 w-5" /></div>
-                 <span className="text-[10px] text-orange-600 font-black uppercase">Vejez</span>
-               </div>
-               <p className="text-xs text-muted-foreground font-medium mb-0.5">Adulto Mayor (60+)</p>
-               <h3 className="text-3xl font-black text-foreground tabular-nums">{idStats?.kpis?.mayores60 || 0}</h3>
-               <div className="absolute -right-4 -bottom-4 h-20 w-20 text-orange-500/5 group-hover:text-orange-500/10 transition-colors"><Activity className="h-full w-full" /></div>
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-500">
+                <Users className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 w-full">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Distribución Sexo</p>
+                <h3 className="text-xs font-bold text-foreground truncate">
+                  H: {idStats?.kpis?.totalHombres || 0} | M: {idStats?.kpis?.totalMujeres || 0}
+                </h3>
+              </div>
             </div>
 
-            <div className="bg-card border border-border p-5 rounded-2xl shadow-sm relative overflow-hidden group">
-               <div className="flex items-center justify-between mb-3">
-                 <div className="p-2.5 bg-teal-100 text-teal-600 rounded-xl"><Baby className="h-5 w-5" /></div>
-                 <span className="text-[10px] text-teal-600 font-black uppercase">Infancia</span>
-               </div>
-               <p className="text-xs text-muted-foreground font-medium mb-0.5">Niños &lt; 10 años</p>
-               <div className="flex items-baseline gap-2">
-                 <h3 className="text-3xl font-black text-foreground tabular-nums">{idStats?.kpis?.menores10 || 0}</h3>
-                 {idStats?.kpis?.ninosDesnutricion > 0 && (
-                   <span className="text-[10px] font-black text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded-lg border border-rose-100">
-                     {idStats.kpis.ninosDesnutricion} riesgo
-                   </span>
-                 )}
-               </div>
-               <div className="absolute -right-4 -bottom-4 h-20 w-20 text-teal-500/5 group-hover:text-teal-500/10 transition-colors"><Baby className="h-full w-full" /></div>
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-950/30 dark:text-violet-500">
+                <Layers className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 w-full">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Ciclo Vital</p>
+                <h3 className="text-[10px] font-bold text-foreground truncate">
+                  {idStats?.piramide?.map((p: any) => `${p.label.split(' ')[0]}: ${p.hombres + p.mujeres}`).join(', ') || 'Sin datos'}
+                </h3>
+              </div>
             </div>
 
-            <div className="bg-card border border-border p-5 rounded-2xl shadow-sm relative overflow-hidden group">
-               <div className="flex items-center justify-between mb-3">
-                 <div className="p-2.5 bg-destructive/10 text-destructive rounded-xl"><Users className="h-5 w-5" /></div>
-                 <span className="text-[10px] text-destructive font-black uppercase">Dinámica</span>
-               </div>
-               <p className="text-xs text-muted-foreground font-medium mb-0.5">Disfunción APGAR</p>
-               <h3 className="text-3xl font-black text-destructive tabular-nums">{idStats?.kpis?.apgarDisfuncion || 0}</h3>
-               <div className="absolute -right-4 -bottom-4 h-20 w-20 text-destructive/5 group-hover:text-destructive/10 transition-colors"><Users className="h-full w-full" /></div>
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-500">
+                <Activity className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Gestantes</p>
+                <h3 className="text-xl font-black text-foreground truncate">{idStats?.kpis?.gestantes || 0}</h3>
+              </div>
             </div>
 
-            <div className="bg-card border border-border p-5 rounded-2xl shadow-sm relative overflow-hidden group">
-               <div className="flex items-center justify-between mb-3">
-                 <div className="p-2.5 bg-teal-100 text-teal-600 rounded-xl"><FileText className="h-5 w-5" /></div>
-                 <span className="text-[10px] text-teal-600 font-black uppercase">Gestión</span>
-               </div>
-               <p className="text-xs text-muted-foreground font-medium mb-0.5">Pers. Remitidas</p>
-               <h3 className="text-3xl font-black text-foreground tabular-nums">{idStats?.kpis?.remitidos || 0}</h3>
-               <div className="absolute -right-4 -bottom-4 h-20 w-20 text-teal-500/5 group-hover:text-teal-500/10 transition-colors"><FileText className="h-full w-full" /></div>
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600 dark:bg-orange-950/30 dark:text-orange-500">
+                <Users className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Adulto Mayor (60+)</p>
+                <h3 className="text-xl font-black text-foreground truncate">{idStats?.kpis?.mayores60 || 0}</h3>
+              </div>
             </div>
 
-            <div className="bg-card border border-border p-5 rounded-2xl shadow-sm relative overflow-hidden group">
-               <div className="flex items-center justify-between mb-3">
-                 <div className="p-2.5 bg-purple-100 text-purple-600 rounded-xl"><HeartPulse className="h-5 w-5" /></div>
-                 <span className="text-[10px] text-purple-600 font-black uppercase">Seguimiento</span>
-               </div>
-               <p className="text-xs text-muted-foreground font-medium mb-0.5">Seguimientos Fam.</p>
-               <h3 className="text-3xl font-black text-foreground tabular-nums">{idStats?.kpis?.seguimientosEtapa || 0}</h3>
-               <div className="absolute -right-4 -bottom-4 h-20 w-20 text-purple-500/5 group-hover:text-purple-500/10 transition-colors"><HeartPulse className="h-full w-full" /></div>
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600 dark:bg-teal-950/30 dark:text-teal-500">
+                <Baby className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Menores de 5</p>
+                <h3 className="text-xl font-black text-foreground truncate">{idStats?.kpis?.menores5 || 0}</h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600 dark:bg-sky-950/30 dark:text-sky-500">
+                <Activity className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 w-full">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Aseguramiento</p>
+                <h3 className="text-[10px] font-bold text-foreground truncate">
+                  S: {idStats?.kpis?.regimenSubsidiado || 0} | C: {idStats?.kpis?.regimenContributivo || 0} | Sin: {idStats?.kpis?.sinAseguramiento || 0}
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-fuchsia-50 text-fuchsia-600 dark:bg-fuchsia-950/30 dark:text-fuchsia-500">
+                <ShieldAlert className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 w-full">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Priorizados</p>
+                <h3 className="text-xs font-bold text-foreground truncate">
+                  Víct: {idStats?.kpis?.victimas || 0} | PcD: {idStats?.kpis?.conDiscapacidad || 0}
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-500">
+                <Activity className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Riesgo Nutricional</p>
+                <h3 className="text-xl font-black text-foreground truncate">{idStats?.kpis?.signosDesnutricion || 0}</h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-500">
+                <Home className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">APGAR Alterado</p>
+                <h3 className="text-xl font-black text-destructive truncate">{idStats?.kpis?.apgarDisfuncion || 0}</h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-yellow-50 text-yellow-600 dark:bg-yellow-950/30 dark:text-yellow-500">
+                <Activity className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Riesgo Metales</p>
+                <h3 className="text-xl font-black text-foreground truncate">{idStats?.kpis?.riesgoMetales || 0}</h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600 dark:bg-orange-950/30 dark:text-orange-500">
+                <HeartPulse className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Enfermedad Aguda</p>
+                <h3 className="text-xl font-black text-foreground truncate">{idStats?.kpis?.enfermedadAguda || 0}</h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-pink-50 text-pink-600 dark:bg-pink-950/30 dark:text-pink-500">
+                <Home className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Hogares Hacinados</p>
+                <h3 className="text-xl font-black text-foreground truncate">{idStats?.kpis?.hacinamiento || 0}</h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-950/30 dark:text-violet-500">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Con Barreras Acceso</p>
+                <h3 className="text-xl font-black text-foreground truncate">{idStats?.kpis?.conBarreras || 0}</h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/30 dark:text-purple-500">
+                <Activity className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Familias c/ Seg.</p>
+                <h3 className="text-xl font-black text-foreground truncate">{idStats?.kpis?.seguimientos || 0}</h3>
+              </div>
             </div>
           </div>
 
@@ -543,7 +646,7 @@ export function AdminReportes() {
                </div>
                <div className="w-full h-80">
                  {(idStats?.piramide?.length || 0) > 0 ? (
-                   <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                   <ResponsiveContainer width="100%" height={320}>
                      <BarChart layout="vertical" data={idStats?.piramide || []} margin={{ top: 10, right: 30, left: 20, bottom: 5 }}>
                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="oklch(0.9 0.02 285)" />
                        <XAxis type="number" hide />
@@ -551,7 +654,7 @@ export function AdminReportes() {
                        <Tooltip
                          cursor={{ fill: 'transparent' }}
                          contentStyle={{ backgroundColor: "var(--card)", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }}
-                         formatter={((value: any, name: any) => [Math.abs(value), name === "mujeres" ? "Mujeres" : "Hombres"]) as any}
+                         formatter={((value: any, name: any) => [Math.abs(value), String(name).toLowerCase() === "mujeres" ? "Mujeres" : "Hombres"]) as any}
                        />
                        <Bar dataKey="hombres" name="Hombres" fill="#081e69" stackId="a" radius={[0, 4, 4, 0]} barSize={20} />
                        <Bar dataKey="mujeres" name="Mujeres" fill="#eb3b5a" stackId="a" radius={[4, 0, 0, 4]} barSize={20} />

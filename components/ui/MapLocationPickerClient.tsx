@@ -15,12 +15,13 @@ L.Icon.Default.mergeOptions({
 })
 
 // Evento para clics en el mapa
-function LocationMarker({ position, setPosition, setFieldValue }: any) {
+function LocationMarker({ position, setPosition, setFieldValue, setZoomLevel }: any) {
   useMapEvents({
     click(e) {
       setPosition(e.latlng)
       setFieldValue('latitud', e.latlng.lat.toString())
       setFieldValue('longitud', e.latlng.lng.toString())
+      setZoomLevel(18)
     },
   })
 
@@ -29,13 +30,13 @@ function LocationMarker({ position, setPosition, setFieldValue }: any) {
   )
 }
 
-function MapUpdater({ position }: { position: L.LatLng | null }) {
+function MapUpdater({ position, zoom }: { position: L.LatLng | null; zoom: number }) {
   const map = useMap()
   useEffect(() => {
     if (position) {
-      map.flyTo(position, 18, { animate: true, duration: 1.5 })
+      map.flyTo(position, zoom, { animate: true, duration: 1.5 })
     }
-  }, [position, map])
+  }, [position, zoom, map])
   return null
 }
 
@@ -45,13 +46,28 @@ export default function MapLocationPickerClient({
   lat: string | undefined, lng: string | undefined, setFieldValue: any, searchQuery: string
 }) {
   const [position, setPosition] = useState<L.LatLng | null>(null)
+  const [zoomLevel, setZoomLevel] = useState(6)
   const previousQuery = useRef(searchQuery)
   const mapRef = useRef<any>(null)
+  const positionRef = useRef<L.LatLng | null>(null)
+  positionRef.current = position
   
   // Sincronizar estado local con valores del formulario
   useEffect(() => {
     if (lat && lng && !Number.isNaN(parseFloat(lat)) && !Number.isNaN(parseFloat(lng))) {
-      setPosition(L.latLng(parseFloat(lat), parseFloat(lng)))
+      const parsedLat = parseFloat(lat)
+      const parsedLng = parseFloat(lng)
+      const currentPos = positionRef.current
+      
+      // Solo sincronizar si es un cambio externo real (Carga inicial o GPS manual)
+      const isDifferent = !currentPos || 
+        Math.abs(currentPos.lat - parsedLat) > 0.0001 || 
+        Math.abs(currentPos.lng - parsedLng) > 0.0001;
+
+      if (isDifferent) {
+        setPosition(L.latLng(parsedLat, parsedLng))
+        setZoomLevel(18)
+      }
     }
   }, [lat, lng])
 
@@ -78,6 +94,24 @@ export default function MapLocationPickerClient({
           if (results && results.length > 0) {
             const best = results[0]
             const newPos = L.latLng(best.y, best.x)
+            
+            // Zoom en 4 fases basado en la profundidad de los campos diligenciados:
+            const rawParts = searchQuery.split(',').map(s => s.trim())
+            const hasDireccion = !!rawParts[0]
+            const hasCentroPoblado = !!rawParts[1]
+            const hasMunicipio = !!rawParts[2]
+            const hasDepartamento = !!rawParts[3]
+
+            let targetZoom = 6
+            if (hasDireccion) {
+              targetZoom = 18 // Fase 3: Dirección completa (Máxima aproximación)
+            } else if (hasCentroPoblado) {
+              targetZoom = 14 // Fase 2: Barrio/Centro Poblado (Aproximación del sector)
+            } else if (hasMunicipio || hasDepartamento) {
+              targetZoom = 11 // Fase 1: Departamento/Municipio (Vista amplia del municipio)
+            }
+
+            setZoomLevel(targetZoom)
             setPosition(newPos)
             setFieldValue('latitud', best.y.toString(), { shouldValidate: true })
             setFieldValue('longitud', best.x.toString(), { shouldValidate: true })
@@ -94,8 +128,8 @@ export default function MapLocationPickerClient({
   return (
     <div className="w-full h-[350px] rounded-xl overflow-hidden border-2 border-slate-200 z-10 relative shadow-sm">
       <MapContainer 
-        center={position || [5.4828, -76.7397]} // Centro de Paimadó por defecto
-        zoom={position ? 16 : 13} 
+        center={position || [4.5709, -74.2973]} // Vista amplia de Colombia por defecto
+        zoom={position ? zoomLevel : 6} 
         style={{ height: '100%', width: '100%' }}
         ref={mapRef}
       >
@@ -103,8 +137,8 @@ export default function MapLocationPickerClient({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <LocationMarker position={position} setPosition={setPosition} setFieldValue={setFieldValue} />
-        {position && <MapUpdater position={position} />}
+        <LocationMarker position={position} setPosition={setPosition} setFieldValue={setFieldValue} setZoomLevel={setZoomLevel} />
+        {position && <MapUpdater position={position} zoom={zoomLevel} />}
       </MapContainer>
     </div>
   )

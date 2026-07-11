@@ -40,6 +40,7 @@ export const integranteSchema = z.object({
   frecuenciaRespiratoria: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
   saturacionOxigeno: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
   perimetroCefalico: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
+  perimetroAbdominal: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
   tipoCancer: z.string().optional().nullable(),
   riesgoMetalesPesados: z.any().optional().nullable(),
   practicaDeportiva: z.boolean().default(false),
@@ -145,10 +146,12 @@ export const wizardSchema = z.object({
   apgar: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
   apgarRespuestas: z.array(z.union([z.number(), z.string()]).transform(v => Number(v))).default([]),
   ecomapa: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
+  ecomapaRespuestas: z.array(z.union([z.number(), z.string()]).transform(v => Number(v))).default([]),
   cuidadorPrincipal: z.boolean().default(false),
   zarit: z.union([z.string(), z.number()]).optional().nullable().transform(v => v ? String(v) : null),
+  zaritRespuestas: z.array(z.union([z.number(), z.string()]).transform(v => Number(v))).default([]),
   vulnerabilidades: z.array(z.union([z.string(), z.number()]).transform(v => Number(v))).min(1, "Debe seleccionar al menos una opción de vulnerabilidad social (o 'Ninguna')"),
-  
+  consentimiento: z.any().optional().nullable(),
   integrantes: z.array(integranteSchema).default([]),
 }).superRefine((data, ctx) => {
   if (data.estadoVisita === "1") {

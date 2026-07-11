@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 import {
@@ -23,6 +23,12 @@ const COLORS = [
 ]
 
 export function AdminReportesId() {
+  const [isMounted, setIsMounted] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setIsMounted(true), 150);
+    return () => clearTimeout(timer);
+  }, [])
+
   const [activeTab, setActiveTab] = useState<"general" | "salud" | "barreras">("general")
   const [filterMode, setFilterMode] = useState<"etapa" | "fechas" | "todo">("etapa")
   const [dateRange, setDateRange] = useState({ 
@@ -36,7 +42,7 @@ export function AdminReportesId() {
     fetcher
   )
 
-  if (loadingStats) {
+  if (loadingStats || !isMounted) {
     return (
       <div className="flex h-[400px] w-full items-center justify-center p-8 text-muted-foreground text-sm flex-col gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -130,7 +136,7 @@ export function AdminReportesId() {
                </div>
                <div className="w-full h-80">
                  {(stats?.piramide?.length || 0) > 0 ? (
-                   <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                   <ResponsiveContainer width="100%" height={320}>
                      <BarChart layout="vertical" data={stats?.piramide || []} margin={{ top: 10, right: 30, left: 10, bottom: 5 }}>
                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="oklch(0.9 0.02 285)" />
                        <XAxis type="number" hide />
@@ -138,7 +144,7 @@ export function AdminReportesId() {
                        <Tooltip
                          cursor={{ fill: 'transparent' }}
                          contentStyle={{ backgroundColor: "var(--card)", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }}
-                         formatter={((value: any, name: any) => [Math.abs(value), name === "mujeres" ? "Mujeres" : "Hombres"]) as any}
+                         formatter={((value: any, name: any) => [Math.abs(value), String(name).toLowerCase() === "mujeres" ? "Mujeres" : "Hombres"]) as any}
                        />
                        <Bar dataKey="hombres" name="Hombres" fill="#081e69" stackId="a" radius={[0, 4, 4, 0]} barSize={20} />
                        <Bar dataKey="mujeres" name="Mujeres" fill="#eb3b5a" stackId="a" radius={[4, 0, 0, 4]} barSize={20} />
@@ -153,7 +159,7 @@ export function AdminReportesId() {
           {/* Aseguramiento */}
           <ChartContainer title="Distribución por Régimen" icon={<ShieldAlert className="w-4 h-4" />}>
              <div className="h-[350px] w-full">
-                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                <ResponsiveContainer width="100%" height={350}>
                   <PieChart>
                     <Pie
                       data={stats?.aseguramiento?.regimen || []}
@@ -172,11 +178,11 @@ export function AdminReportesId() {
                 </ResponsiveContainer>
              </div>
           </ChartContainer>
-
+ 
           {/* EAPB Ranking */}
           <ChartContainer className="lg:col-span-2" title="Principales EAPB / EPS en el Territorio" icon={<Stethoscope className="w-4 h-4" />}>
             <div className="h-[250px] w-full">
-              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+              <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={stats?.aseguramiento?.eapb || []} margin={{ bottom: 40 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="name" angle={-45} textAnchor="end" interval={0} fontSize={10} height={80} />
@@ -195,7 +201,7 @@ export function AdminReportesId() {
           {/* Nutrición */}
           <ChartContainer title="Estado Nutricional" icon={<Scale className="w-4 h-4" />}>
              <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={(stats?.nutricion || []).map((n:any) => ({
                     name: DIAGNOSTICO_NUTRICIONAL.find(d => String(d.id) === n.name)?.label || 'No aplica',
                     value: n.value
@@ -213,7 +219,7 @@ export function AdminReportesId() {
           {/* Morbilidad Cronica */}
           <ChartContainer title="Enfermedades Crónicas Prevalentes" icon={<AlertTriangle className="w-4 h-4" />}>
              <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={(stats?.morbilidad?.cronicas || []).map((n:any) => ({
                     name: ANTECEDENTES_CRONICOS.find(d => d.id === n.name)?.label || n.name,
                     value: n.value
@@ -233,8 +239,8 @@ export function AdminReportesId() {
              <div className="text-sm">
                 <p className="font-bold text-[#081e69]">Indicador de Morbilidad Aguda</p>
                 <p className="text-muted-foreground mt-1">
-                  Se han identificado <b>{kpis.enfermedadAguda || 0}</b> casos de enfermedad aguda reciente (IRAS/EDAS). 
-                  De estos, el <b>{Math.round(((kpis.recibeAtencion || 0) / (kpis.enfermedadAguda || 1)) * 100)}%</b> está recibiendo atención médica.
+                   Se han identificado <b>{kpis.enfermedadAguda || 0}</b> casos de enfermedad aguda reciente (IRAS/EDAS). 
+                   De estos, el <b>{Math.round(((kpis.recibeAtencion || 0) / (kpis.enfermedadAguda || 1)) * 100)}%</b> está recibiendo atención médica.
                 </p>
              </div>
           </div>
@@ -246,7 +252,7 @@ export function AdminReportesId() {
           {/* Intervenciones Pendientes */}
           <ChartContainer title="Brechas en Resalución 3280 (Intervenciones Pendientes)" icon={<AlertTriangle className="w-4 h-4" />}>
              <div className="h-[400px] w-full">
-                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                <ResponsiveContainer width="100%" height={400}>
                   <BarChart data={(stats?.intervenciones || []).map((n:any) => ({
                     name: INTERVENCIONES_PENDIENTES.find(d => String(d.id) === n.name)?.label || n.name,
                     value: n.value
@@ -264,7 +270,7 @@ export function AdminReportesId() {
           {/* Barreras de Acceso */}
           <ChartContainer title="Barreras de Acceso Reportadas" icon={<AlertTriangle className="w-4 h-4" />}>
              <div className="h-[400px] w-full">
-                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                <ResponsiveContainer width="100%" height={400}>
                   <BarChart data={(stats?.barreras || []).map((n:any) => ({
                     name: BARRERAS_ACCESO.find(d => String(d.id) === n.name)?.label || n.name,
                     value: n.value

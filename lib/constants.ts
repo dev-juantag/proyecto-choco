@@ -150,14 +150,29 @@ export const APGAR_OPCIONES = [
 export const ZARIT_OPCIONES = [
   { id: 1, label: "Sin sobrecarga" },
   { id: 2, label: "Sobrecarga leve" },
-  { id: 3, label: "Sobrecarga intensa" }
+  { id: 3, label: "Sobrecarga moderada a intensa" }
+];
+
+export const ZARIT_PREGUNTAS = [
+  "¿Siente que no dispone de suficiente tiempo para usted debido al cuidado de su familiar?",
+  "¿Se siente estresado(a) por tener que cuidar a su familiar y atender otras responsabilidades?",
+  "¿Se siente agotado(a) o cansado(a) por el cuidado que brinda?",
+  "¿Siente que cuidar a su familiar ha afectado su salud o bienestar?",
+  "En general, ¿se siente sobrecargado(a) por tener que cuidar a su familiar?"
 ];
 
 export const ECOMAPA_OPCIONES = [
-  { id: 1, label: "Redes integradas / Relaciones fuertes" },
-  { id: 2, label: "Relaciones débiles o distantes" },
-  { id: 3, label: "Relaciones conflictivas" },
-  { id: 4, label: "Sin redes de apoyo comunitarias" }
+  { id: 1, label: "Red de apoyo adecuada" },
+  { id: 2, label: "Red de apoyo limitada" },
+  { id: 3, label: "Red de apoyo insuficiente" }
+];
+
+export const ECOMAPA_PREGUNTAS = [
+  "¿Cuenta con familiares que le brinden apoyo cuando lo necesita?",
+  "¿Tiene amigos o vecinos en quienes pueda confiar?",
+  "¿Recibe apoyo de alguna institución (centro de salud, iglesia, escuela, grupo comunitario, etc.)?",
+  "¿Considera que la relación con estas personas o instituciones es positiva?",
+  "¿Siente que tiene suficiente apoyo social para afrontar las dificultades?"
 ];
 
 export const VULNERABILIDADES = [
@@ -189,6 +204,10 @@ export const PARENTESCO = [
   { id: 5, label: "Nieto(a)" },
   { id: 6, label: "Hermano(a)" },
   { id: 7, label: "Yerno / Nuera" },
+  { id: 10, label: "Suegro (a)" },
+  { id: 11, label: "Tio (a)" },
+  { id: 12, label: "Primo (a)" },
+  { id: 13, label: "Abuelo (a)" },
   { id: 8, label: "Otro familiar" },
   { id: 9, label: "No familiar" }
 ];
@@ -283,7 +302,8 @@ export const ANTECEDENTES_CRONICOS = [
   { id: "EPOC", label: "EPOC / Asma" },
   { id: "IRC", label: "Insuficiencia Renal" },
   { id: "CA", label: "Cáncer" },
-  { id: "ECV", label: "Enfermedad Cardiovascular" }
+  { id: "ECV", label: "Enfermedad Cardiovascular" },
+  { id: "NINGUNA", label: "Ninguna" }
 ];
 
 export const ANTECEDENTES_TRANSMISIBLES = [
@@ -291,7 +311,8 @@ export const ANTECEDENTES_TRANSMISIBLES = [
   { id: "VIH", label: "VIH / SIDA" },
   { id: "LEP", label: "Lepra" },
   { id: "HEP", label: "Hepatitis B / C" },
-  { id: "MAL", label: "Malaria / Dengue" }
+  { id: "MAL", label: "Malaria / Dengue" },
+  { id: "NINGUNA", label: "Ninguna" }
 ];
 
 export function calcularEdad(fechaNacStr: string): number {

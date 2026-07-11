@@ -120,22 +120,6 @@ export function AdminProgramas() {
                 {p.profesionales} prof.
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="h-1.5 flex-1 rounded-full bg-muted">
-                <div
-                  className="h-1.5 rounded-full bg-primary transition-all"
-                  style={{
-                    width: `${Math.min(100, Math.round((p.atenciones / p.meta) * 100))}%`,
-                  }}
-                />
-              </div>
-              <span className="text-xs font-medium text-muted-foreground">
-                {Math.round((p.atenciones / p.meta) * 100)}%
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Meta: {p.meta} atenciones
-            </p>
           </button>
         ))}
       </div>
@@ -167,14 +151,10 @@ export function AdminProgramas() {
               </button>
             </div>
           </div>
-          <div className="grid gap-4 sm:grid-cols-3 mb-6">
+          <div className="grid gap-4 sm:grid-cols-2 mb-6">
             <div className="rounded-lg bg-primary/5 p-4">
               <p className="text-xs text-muted-foreground mb-1">Total atenciones</p>
               <p className="text-2xl font-bold text-foreground">{selected.atenciones}</p>
-            </div>
-            <div className="rounded-lg bg-primary/5 p-4">
-              <p className="text-xs text-muted-foreground mb-1">Meta del programa</p>
-              <p className="text-2xl font-bold text-foreground">{selected.meta}</p>
             </div>
             <div className="rounded-lg bg-primary/5 p-4">
               <p className="text-xs text-muted-foreground mb-1">Profesionales activos</p>
@@ -230,8 +210,6 @@ export function AdminProgramas() {
 
 function ProgramaFormModal({ programa, onClose, onSuccess }: any) {
   const [nombre, setNombre] = useState(programa?.nombre || "")
-  // Carga metaBase si existe personalizado, de lo contrario muestra un string vacío para placeholder
-  const [meta, setMeta] = useState(programa?.metaBase || "")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -246,14 +224,14 @@ function ProgramaFormModal({ programa, onClose, onSuccess }: any) {
         res = await fetch(`/api/programas/${programa.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nombre, meta }),
+          body: JSON.stringify({ nombre }),
         })
       } else {
         // Create
         res = await fetch("/api/programas", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nombre, meta }),
+          body: JSON.stringify({ nombre }),
         })
       }
 
@@ -301,22 +279,7 @@ function ProgramaFormModal({ programa, onClose, onSuccess }: any) {
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-foreground">
-              Meta individual de atenciones 
-              <span className="text-xs font-normal text-muted-foreground ml-2">
-                (Por defecto global: {CONFIG.META_INDIVIDUAL_POR_DEFECTO})
-              </span>
-            </label>
-            <input
-              type="number"
-              min="1"
-              value={meta}
-              onChange={(e) => setMeta(e.target.value)}
-              placeholder={`Ej. ${CONFIG.META_INDIVIDUAL_POR_DEFECTO} (Dejar vacío para global)`}
-              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all"
-            />
-          </div>
+
 
           <div className="mt-4 flex justify-end gap-3">
             <button

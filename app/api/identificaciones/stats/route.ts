@@ -8,7 +8,8 @@ import {
   DIAGNOSTICO_NUTRICIONAL, 
   ANTECEDENTES_CRONICOS, 
   ANTECEDENTES_TRANSMISIBLES, 
-  VULNERABILIDADES 
+  VULNERABILIDADES,
+  calcularCursoVida
 } from "@/lib/constants"
 
 export const dynamic = "force-dynamic"
@@ -57,6 +58,7 @@ export async function GET(request: Request) {
         estratoSocial: true,
         vulnerabilidades: true,
         apgar: true,
+        hacinamiento: true,
         territorio: { select: { nombre: true, codigo: true } }
       }
     })
@@ -80,6 +82,7 @@ export async function GET(request: Request) {
         esquemaVacunacion: true,
         intervencionesPendientes: true,
         barrerasAcceso: true,
+        discapacidades: true,
         peso: true,
         talla: true,
         perimetroBraquial: true,
@@ -90,6 +93,7 @@ export async function GET(request: Request) {
         recibeAtencionMedica: true,
         practicaDeportiva: true,
         remisiones: true,
+        riesgoMetalesPesados: true,
       }
     })
 
@@ -111,6 +115,9 @@ export async function GET(request: Request) {
     let totalMujeres = 0
     let enfermedadHuerfanaHogares = new Set<string>()
     let apgarDisfuncion = 0
+    let hacinamientoCount = 0
+    let riesgoMetalesCount = 0
+    let conBarrerasCount = 0
 
     // 2. Pirámide Poblacional - Cursos de Vida
     const piramideMap: Record<string, { hombres: number, mujeres: number, label: string, sort: number }> = {
@@ -150,6 +157,7 @@ export async function GET(request: Request) {
     const vulnerabilidadesMap: Record<string, number> = {}
     const estratoMap: Record<string, number> = {}
     const densidadMap: Record<string, number> = {}
+    const victimasFichaIds = new Set<string>()
 
     fichas.forEach((f: any) => {
       // Estrato
@@ -158,6 +166,9 @@ export async function GET(request: Request) {
 
       // Vulnerabilidades
       if (Array.isArray(f.vulnerabilidades)) {
+        if (f.vulnerabilidades.includes(1) || f.vulnerabilidades.includes(2)) {
+          victimasFichaIds.add(f.id)
+        }
         f.vulnerabilidades.forEach((v: number) => {
           if (v !== undefined && v !== null) {
             vulnerabilidadesMap[v] = (vulnerabilidadesMap[v] || 0) + 1
@@ -168,6 +179,10 @@ export async function GET(request: Request) {
       if (f.apgar && f.apgar > 1) {
         apgarDisfuncion++
       }
+
+      if (f.hacinamiento === true) {
+        hacinamientoCount++
+      }
       
       const nom = f.territorio?.nombre || "Sin Asignar"
       densidadMap[nom] = (densidadMap[nom] || 0) + 1
@@ -176,8 +191,30 @@ export async function GET(request: Request) {
     pacientes.forEach((p: any) => {
       // Demografía
       if (p.gestante === "SI") gestantes++
-      if (p.grupoPoblacional?.includes(8)) conDiscapacidad++
-      if (p.grupoPoblacional?.includes(9)) victimas++
+      
+      if (Array.isArray(p.discapacidades) && p.discapacidades.length > 0) {
+        if (p.discapacidades.some((id: number) => id !== 6)) {
+          conDiscapacidad++
+        }
+      }
+      
+      if (p.fichaId && victimasFichaIds.has(p.fichaId)) {
+        victimas++
+      }
+
+      if (p.riesgoMetalesPesados && typeof p.riesgoMetalesPesados === 'object') {
+        const hasRisk = Object.values(p.riesgoMetalesPesados).some(v => v === true || v === 'SI')
+        if (hasRisk) {
+          riesgoMetalesCount++
+        }
+      }
+      
+      if (Array.isArray(p.barrerasAcceso) && p.barrerasAcceso.length > 0) {
+        if (p.barrerasAcceso.some((b: number) => b !== 5)) {
+          conBarrerasCount++
+        }
+      }
+      
       if (p.practicaDeportiva === true) habitosSaludables++
 
       // Género total
@@ -244,7 +281,7 @@ export async function GET(request: Request) {
       // Nutrición
       if (p.diagNutricional) {
         nutricionMap[p.diagNutricional] = (nutricionMap[p.diagNutricional] || 0) + 1
-        if ([4, 5, 6].includes(p.diagNutricional)) {
+        if ([2, 3].includes(p.diagNutricional)) {
           signosDesnutricion++
           if (currentAge >= 0 && currentAge < 10) {
             ninosDesnutricion++
@@ -312,6 +349,85 @@ export async function GET(request: Request) {
       where: whereSeguimientoEtapa
     })
 
+    // Atenciones stats
+    let whereAtencion: any = {}
+    let whereDerivacion: any = {}
+
+    if (territorioId) {
+      if (territorioId.includes(',')) {
+        const ids = territorioId.split(',')
+        whereAtencion.territorioId = { in: ids }
+        whereDerivacion.territorioId = { in: ids }
+      } else {
+        whereAtencion.territorioId = territorioId
+        whereDerivacion.territorioId = territorioId
+      }
+    }
+
+    if (filterMode === "etapa") {
+      if (settings?.currentStageStart) {
+        whereAtencion.createdAt = { gte: settings.currentStageStart }
+        whereDerivacion.createdAt = { gte: settings.currentStageStart }
+      }
+    } else if (filterMode === "fechas" && startDate && endDate) {
+      const start = new Date(startDate)
+      start.setHours(0, 0, 0, 0)
+      const end = new Date(endDate)
+      end.setHours(23, 59, 59, 999)
+      whereAtencion.createdAt = { gte: start, lte: end }
+      whereDerivacion.createdAt = { gte: start, lte: end }
+    }
+
+    const atencionesData = await prisma.atencion.findMany({
+      where: whereAtencion,
+      select: {
+        id: true,
+        pacienteId: true,
+        programaId: true,
+        profesionalId: true,
+        createdAt: true,
+        paciente: {
+          select: {
+            fechaNacimiento: true
+          }
+        }
+      }
+    })
+
+    const distinctAtendidos = new Set(atencionesData.map(a => a.pacienteId))
+    const totalAtenciones = atencionesData.length
+    const personasAtendidas = distinctAtendidos.size
+    const personasSinAtencion = Math.max(0, pacientes.length - personasAtendidas)
+    const coberturaAtencion = pacientes.length > 0 ? ((personasAtendidas / pacientes.length) * 100) : 0
+
+    // Remisiones stats
+    const remisionesPendientes = await prisma.derivacion.count({
+      where: { ...whereDerivacion, estado: "PENDIENTE" }
+    })
+    const remisionesEnProceso = await prisma.derivacion.count({
+      where: { ...whereDerivacion, estado: "EN_PROCESO" }
+    })
+    const remisionesCerradas = await prisma.derivacion.count({
+      where: { ...whereDerivacion, estado: { in: ["ATENDIDA", "CERRADA", "CANCELADA"] } }
+    })
+
+    // Atenciones por mes
+    const atencionesPorMesMap: Record<string, number> = {}
+    atencionesData.forEach(a => {
+      const date = new Date(a.createdAt)
+      const key = date.toLocaleString('es-ES', { month: 'long', year: 'numeric' })
+      atencionesPorMesMap[key] = (atencionesPorMesMap[key] || 0) + 1
+    })
+
+    // Atenciones por curso de vida
+    const atencionesPorCursoMap: Record<string, number> = {}
+    atencionesData.forEach(a => {
+      if (a.paciente?.fechaNacimiento) {
+        const curso = calcularCursoVida(a.paciente.fechaNacimiento)
+        atencionesPorCursoMap[curso] = (atencionesPorCursoMap[curso] || 0) + 1
+      }
+    })
+
     return NextResponse.json({
       kpis: {
         totalFichas: fichas.length,
@@ -337,7 +453,22 @@ export async function GET(request: Request) {
         apgarDisfuncion,
         seguimientos: seguimientosCount,
         seguimientosEtapa: seguimientosEtapaCount,
-        hogaresHuerfanas: enfermedadHuerfanaHogares.size
+        hogaresHuerfanas: enfermedadHuerfanaHogares.size,
+        hacinamiento: hacinamientoCount,
+        riesgoMetales: riesgoMetalesCount,
+        conBarreras: conBarrerasCount
+      },
+      atencionesKpis: {
+        totalAtenciones,
+        personasAtendidas,
+        coberturaAtencion,
+        personasSinAtencion,
+        remisionesPendientes,
+        remisionesEnProceso,
+        remisionesCerradas,
+        seguimientos: seguimientosCount,
+        porMes: Object.entries(atencionesPorMesMap).map(([name, value]) => ({ name, value })),
+        porCursoVida: Object.entries(atencionesPorCursoMap).map(([name, value]) => ({ name, value }))
       },
       piramide: Object.values(piramideMap).sort((a, b) => a.sort - b.sort),
       territorios: Object.entries(densidadMap).map(([name, count]) => ({ name, value: count })),
@@ -382,7 +513,10 @@ export async function GET(request: Request) {
           value
         };
       }).filter(item => item.name && !item.name.toLowerCase().includes('ningun') && !item.name.toLowerCase().includes('ningún')),
-      estratos: Object.entries(estratoMap).map(([name, value]) => ({ name: `Estrato ${name}`, value }))
+      estratos: Object.entries(estratoMap).map(([name, value]) => ({ 
+        name: name === "Sin registrar" ? "Sin registrar" : `Estrato ${name}`, 
+        value 
+      }))
     })
 
 

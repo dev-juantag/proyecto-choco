@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
+import { createPortal } from "react-dom"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 import { useAuth } from "@/lib/auth-context"
@@ -23,6 +24,11 @@ export function IdentificacionesModule() {
   const [activeSearch, setActiveSearch] = useState("")
   const [page, setPage] = useState(1)
   const limit = 25
+
+  const [isMounted, setIsMounted] = useState(false)
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const [filtroAmbito, setFiltroAmbito] = useState<"territorio" | "mis-id" | "todas">("territorio")
   
@@ -636,8 +642,14 @@ export function IdentificacionesModule() {
                       }}
                       onEnableUpdate={async (id, current) => {
                         try {
+                          const token = localStorage.getItem('gestion-poblacional-token');
                           const res = await fetch(`/api/identificaciones/${id}/actualizar`, {
-                            method: 'PATCH', body: JSON.stringify({ puedeActualizarse: !current })
+                            method: 'PATCH',
+                            headers: {
+                              "Content-Type": "application/json",
+                              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                            },
+                            body: JSON.stringify({ puedeActualizarse: !current })
                           });
                           const data = await res.json();
                           if (!res.ok) {
@@ -660,9 +672,12 @@ export function IdentificacionesModule() {
                     />
                   </div>
                   {/* Elemento reservado SÓLO para el momento crítico de imprimir */}
-                  <div className="fixed top-[-9999px] left-[-9999px] print:absolute print:inset-0 print:block w-[1024px] print:w-[1024px] bg-white overflow-visible print:m-0 print:p-0">
-                    <FacturaFicha ficha={selectedFichaDetail} showOnScreen={false} />
-                  </div>
+                  {isMounted && typeof window !== "undefined" && createPortal(
+                    <div className="print-area fixed left-[-9999px] top-0 pointer-events-none -z-50 print:static print:block print:pointer-events-auto w-full bg-white">
+                      <FacturaFicha ficha={selectedFichaDetail} showOnScreen={false} />
+                    </div>,
+                    document.body
+                  )}
                 </>
               ) : (
                 <div className="text-center text-muted-foreground mt-10 p-10">

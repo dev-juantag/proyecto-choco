@@ -161,10 +161,10 @@ export default function Step4Integrantes() {
                     <input {...register(`integrantes.${i}.numDoc`)} disabled={watch(`integrantes.${i}.datosDesconocidos`)} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9a-zA-Z-]/g, ''); register(`integrantes.${i}.numDoc`).onChange(e); }} minLength={3} className={inp} />
                   </F>
                   <F label="Nombres" required>
-                    <input {...register(`integrantes.${i}.nombres`)} autoComplete="off" onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ\s]/g, '').replace(/(^|\s)\S/g, c => c.toUpperCase()); register(`integrantes.${i}.nombres`).onChange(e); }} className={inp} placeholder="Nombres Completos" />
+                    <input {...register(`integrantes.${i}.nombres`)} autoComplete="off" onInput={(e) => { e.currentTarget.value = e.currentTarget.value.toLowerCase().replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ\s]/g, '').replace(/(^|\s)\S/g, c => c.toUpperCase()); register(`integrantes.${i}.nombres`).onChange(e); }} className={inp} placeholder="Nombres Completos" />
                   </F>
                   <F label="Apellidos" required>
-                    <input {...register(`integrantes.${i}.apellidos`)} autoComplete="off" onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ\s]/g, '').replace(/(^|\s)\S/g, c => c.toUpperCase()); register(`integrantes.${i}.apellidos`).onChange(e); }} className={inp} placeholder="Apellidos Completos" />
+                    <input {...register(`integrantes.${i}.apellidos`)} autoComplete="off" onInput={(e) => { e.currentTarget.value = e.currentTarget.value.toLowerCase().replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ\s]/g, '').replace(/(^|\s)\S/g, c => c.toUpperCase()); register(`integrantes.${i}.apellidos`).onChange(e); }} className={inp} placeholder="Apellidos Completos" />
                   </F>
                   {!watch(`integrantes.${i}.datosDesconocidos`) ? (
                     <>
@@ -283,34 +283,32 @@ export default function Step4Integrantes() {
                         <input {...register(`integrantes.${i}.eapb`)} list="eps-list" placeholder="Escriba o elija EPS..." className={inp} />
                         <datalist id="eps-list">
                           <option value="Nueva EPS" />
-                          <option value="EPS Sanitas" />
-                          <option value="EPS Sura" />
-                          <option value="Salud Total EPS" />
-                          <option value="Compensar EPS" />
-                          <option value="Famisanar EPS" />
-                          <option value="Servicio Occidental de Salud (S.O.S)" />
-                          <option value="Aliansalud EPS" />
-                          
                           <option value="Coosalud EPS" />
-                          <option value="Mutual Ser EPS" />
                           <option value="Asmet Salud EPS" />
                           <option value="Emssanar EPS" />
+                          <option value="Mutual Ser EPS" />
+                          <option value="EPS Familiar de Colombia" />
+                          <option value="Salud Total EPS" />
+                          <option value="Sura EPS" />
+                          <option value="Sanitas EPS" />
+                          <option value="Famisanar EPS" />
+                          <option value="Compensar EPS" />
                           <option value="Capital Salud EPS" />
                           <option value="Savia Salud EPS" />
                           <option value="Cajacopi EPS" />
                           <option value="Comfenalco Valle EPS" />
                           <option value="Comfaoriente" />
-                          
+                          <option value="Aliansalud EPS" />
+                          <option value="S.O.S. EPS" />
                           <option value="Anas Wayuu EPSI" />
                           <option value="Mallamas EPSI" />
                           <option value="Pijaos Salud EPSI" />
-                          <option value="Asociación Indígena del Cauca (AIC EPSI)" />
+                          <option value="AIC EPSI" />
                           <option value="Dusakawi EPSI" />
-                          
-                          <option value="Fuerzas Militares y Policía Nacional" />
-                          <option value="Fomag" />
-                          <option value="Ecopetrol" />
-                          <option value="Universidades Públicas" />
+                          <option value="Régimen Especial - Fuerzas Militares y Policía" />
+                          <option value="Régimen Especial - FOMAG" />
+                          <option value="Régimen Especial - Ecopetrol" />
+                          <option value="Régimen Especial - Universidades Públicas" />
                         </datalist>
                       </F>
                     </div>

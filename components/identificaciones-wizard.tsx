@@ -98,6 +98,23 @@ export function IdentificacionesWizard({
   const [saved, setSaved] = useState(false)
   const [savedId, setSavedId] = useState<string | null>(null)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [showConsentModal, setShowConsentModal] = useState(false)
+  const [consentAceptado, setConsentAceptado] = useState(false)
+  const [consentNombre, setConsentNombre] = useState("")
+  const [consentDoc, setConsentDoc] = useState("")
+  const [consentFirma, setConsentFirma] = useState("")
+
+  useEffect(() => {
+    if (showConsentModal) {
+      const integrantes = methods.getValues('integrantes') || []
+      if (integrantes.length > 0) {
+        const primary = integrantes[0]
+        const fullName = `${primary.nombres || ''} ${primary.apellidos || ''}`.trim()
+        setConsentNombre(fullName)
+        setConsentDoc(primary.numDoc || '')
+      }
+    }
+  }, [showConsentModal])
 
   const { coords } = useGeolocation()
   
@@ -122,8 +139,8 @@ export function IdentificacionesWizard({
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
           })(),
           uzpe: "UZPE011",
-          departamento: "CHOCO",
-          municipio: "PAIMADO",
+          departamento: "",
+          municipio: "",
           numEBS: "",
           equipoTerritorio: "",
           perfilEncuestador: user?.rol === "auxiliar" ? "auxiliar" : "otro",
@@ -186,7 +203,7 @@ export function IdentificacionesWizard({
 
       if (step === 1) return ["estadoVisita", "departamento", "municipio", "centroPoblado", "direccion", "numEBS", "equipoTerritorio", "tipoDocEncuestador", "numDocEncuestador", "perfilEncuestador", "latitud", "longitud"]
       if (step === 2) return ["numHogar", "numFamilia", "codFicha", "tipoVivienda", "tipoViviendaDesc", "matParedes", "matPisos", "matTechos", "numHogares", "numDormitorios", "estratoSocial", "hacinamiento", "fuenteAgua", "dispExcretas", "aguasResiduales", "dispResiduos", "riesgoAccidente", "fuenteEnergia", "presenciaVectores", "animales", "cantAnimales", "vacunacionMascotas"]
-      if (step === 3) return ["tipoFamilia", "numIntegrantes", "apgar", "apgarRespuestas", "ecomapa", "cuidadorPrincipal", "zarit", "vulnerabilidades"]
+      if (step === 3) return ["tipoFamilia", "numIntegrantes", "apgar", "apgarRespuestas", "ecomapa", "ecomapaRespuestas", "cuidadorPrincipal", "zarit", "zaritRespuestas", "vulnerabilidades"]
       
       const numIntegrantes = methods.getValues("integrantes")?.length || 0
       const fields: string[] = []
@@ -602,16 +619,22 @@ export function IdentificacionesWizard({
                     if (valid) onSubmit(methods.getValues() as any)
                     else onFormError(methods.formState.errors)
                   } else {
-                    methods.handleSubmit(onSubmit as any, onFormError)()
+                    const valid = await methods.trigger()
+                    if (valid) {
+                      setStepError("")
+                      setShowConsentModal(true)
+                    } else {
+                      onFormError(methods.formState.errors)
+                    }
                   }
                 }}
                 disabled={saving}
-                className="flex items-center gap-1.5 h-10 px-6 rounded-xl font-bold text-sm text-primary-foreground transition-all active:scale-95 disabled:opacity-60 bg-primary hover:bg-primary/90 shadow-sm"
+                className="flex items-center gap-1.5 h-10 px-6 rounded-xl font-bold text-sm text-primary-foreground transition-all active:scale-95 disabled:opacity-60 bg-[#0a8c32] hover:bg-[#087329] shadow-sm"
               >
                 {saving ? (
                   <>Guardando en Nube...</>
                 ) : (
-                  <><Save size={16} /> Consolidar e Inscribir</>
+                  <><Save size={16} /> Inscribir y firmar</>
                 )}
               </button>
             ) : (
@@ -639,6 +662,231 @@ export function IdentificacionesWizard({
         onCancel={() => setShowExitConfirm(false)}
         danger
       />
+
+      {/* Modal de Firma y Consentimiento de Datos */}
+      {showConsentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 p-4">
+          <div className="bg-card w-full max-w-xl rounded-3xl border border-border shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-border bg-muted/20">
+              <h3 className="font-bold text-sm text-foreground uppercase tracking-wider text-[#081e69]">
+                Autorización para el tratamiento de datos personales
+              </h3>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-4">
+              <div className="text-[11px] text-muted-foreground bg-muted/30 p-4 rounded-2xl border border-border space-y-2 leading-relaxed h-[180px] overflow-y-auto">
+                <p className="font-bold text-foreground">Autorización para el tratamiento de datos personales</p>
+                <p>
+                  En cumplimiento de la Ley 1581 de 2012 y demás normas concordantes, autorizo de manera libre, previa, expresa e informada el tratamiento de mis datos personales, incluidos los datos sensibles relacionados con mi estado de salud, suministrados mediante este formulario.
+                </p>
+                <p>
+                  Declaro que la información proporcionada podrá ser recolectada, almacenada, organizada, consultada, actualizada y utilizada exclusivamente para fines asistenciales, clínicos, epidemiológicos, de seguimiento en salud y demás actividades relacionadas con la atención brindada, garantizando la confidencialidad, integridad y seguridad de la información.
+                </p>
+                <p>
+                  Entiendo que mis datos no serán compartidos con terceros, salvo cuando exista autorización legal, orden de autoridad competente o cuando sea necesario para la prestación de los servicios de salud.
+                </p>
+                <p>
+                  Declaro que la información suministrada es veraz y que conozco mis derechos de acceso, actualización, rectificación, supresión y revocatoria de la autorización, conforme a la legislación vigente.
+                </p>
+                <p className="font-semibold text-foreground">
+                  Al firmar electrónicamente este documento manifiesto que he leído, comprendido y aceptado el contenido de esta autorización.
+                </p>
+              </div>
+
+              {/* Checkbox Aceptación */}
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={consentAceptado} 
+                  onChange={(e) => setConsentAceptado(e.target.checked)} 
+                  className="w-4 h-4 text-[#0a8c32] rounded border-gray-300 focus:ring-[#0a8c32] mt-0.5" 
+                />
+                <span className="text-xs font-semibold text-foreground leading-snug">
+                  He leído y acepto la autorización para el tratamiento de mis datos personales.
+                </span>
+              </label>
+
+              {/* Inputs */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Nombre completo</label>
+                  <input 
+                    type="text" 
+                    value={consentNombre} 
+                    onChange={(e) => setConsentNombre(e.target.value)} 
+                    placeholder="Escriba nombre del firmante" 
+                    className="w-full h-10 px-3 rounded-xl border border-input text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary bg-background text-foreground" 
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Documento de identidad</label>
+                  <input 
+                    type="text" 
+                    value={consentDoc} 
+                    onChange={(e) => setConsentDoc(e.target.value)} 
+                    placeholder="Escriba documento" 
+                    className="w-full h-10 px-3 rounded-xl border border-input text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary bg-background text-foreground" 
+                  />
+                </div>
+              </div>
+
+              {/* Área de Firma */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Firma electrónica (Dibuje su firma abajo)</label>
+                <SignaturePad 
+                  onSave={(png) => setConsentFirma(png)} 
+                  onClear={() => setConsentFirma("")} 
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-border bg-muted/20 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConsentModal(false)
+                  setConsentAceptado(false)
+                  setConsentFirma("")
+                }}
+                className="px-5 h-10 rounded-xl font-semibold text-xs transition-all border border-border hover:bg-muted text-foreground"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={!consentAceptado || !consentNombre.trim() || !consentDoc.trim() || !consentFirma}
+                onClick={async () => {
+                  const consentData = {
+                    acepto_tratamiento_datos: true,
+                    fecha: new Date().toISOString(),
+                    nombre: consentNombre,
+                    identificacion: consentDoc,
+                    firma: consentFirma,
+                    version_autorizacion: "1.0",
+                    ip: "127.0.0.1",
+                    user_agent: navigator.userAgent
+                  }
+                  methods.setValue('consentimiento', consentData)
+                  setShowConsentModal(false)
+                  onSubmit(methods.getValues() as any)
+                }}
+                className="px-6 h-10 rounded-xl font-black text-xs text-primary-foreground transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed bg-[#0a8c32] hover:bg-[#087329] shadow-sm flex items-center justify-center"
+              >
+                Firmar y guardar
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+import { useRef } from 'react'
+
+function SignaturePad({ onSave, onClear }: { onSave: (dataUrl: string) => void; onClear: () => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [isDrawing, setIsDrawing] = useState(false)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.strokeStyle = '#081e69'
+    ctx.lineWidth = 2.5
+    ctx.lineCap = 'round'
+  }, [])
+
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    setIsDrawing(true)
+    const pos = getPos(e)
+    ctx.beginPath()
+    ctx.moveTo(pos.x, pos.y)
+  }
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const pos = getPos(e)
+    ctx.lineTo(pos.x, pos.y)
+    ctx.stroke()
+  }
+
+  const stopDrawing = () => {
+    setIsDrawing(false)
+    const canvas = canvasRef.current
+    if (canvas) {
+      onSave(canvas.toDataURL('image/png'))
+    }
+  }
+
+  const getPos = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current
+    if (!canvas) return { x: 0, y: 0 }
+    const rect = canvas.getBoundingClientRect()
+    
+    if ('touches' in e) {
+      if (e.touches.length === 0) return { x: 0, y: 0 }
+      return {
+        x: e.touches[0].clientX - rect.left,
+        y: e.touches[0].clientY - rect.top
+      }
+    } else {
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      }
+    }
+  }
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    onClear()
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="border border-dashed border-gray-300 rounded-xl overflow-hidden bg-gray-50 relative" style={{ height: '140px' }}>
+        <canvas
+          ref={canvasRef}
+          width={480}
+          height={140}
+          className="w-full h-full cursor-crosshair touch-none"
+          onMouseDown={startDrawing}
+          onMouseMove={draw}
+          onMouseUp={stopDrawing}
+          onMouseLeave={stopDrawing}
+          onTouchStart={startDrawing}
+          onTouchMove={draw}
+          onTouchEnd={stopDrawing}
+        />
+        <button
+          type="button"
+          onClick={clearCanvas}
+          className="absolute bottom-2 right-2 px-2.5 py-1 text-[10px] font-black uppercase text-gray-500 bg-white hover:bg-gray-100 rounded-md border border-gray-200 shadow-sm"
+        >
+          Limpiar
+        </button>
+      </div>
     </div>
   )
 }

@@ -33,16 +33,27 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Register Service Worker
+    // Register Service Worker (Solo en producción para evitar conflictos de caché HMR en desarrollo)
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then((reg) => {
-          console.log("Service Worker registrado con éxito:", reg.scope);
-        })
-        .catch((err) => {
-          console.error("Error al registrar el Service Worker:", err);
+      if (process.env.NODE_ENV === "production") {
+        navigator.serviceWorker
+          .register("/sw.js")
+          .then((reg) => {
+            console.log("Service Worker registrado con éxito:", reg.scope);
+          })
+          .catch((err) => {
+            console.error("Error al registrar el Service Worker:", err);
+          });
+      } else {
+        // Desregistrar service workers activos en desarrollo para limpiar la caché de Turbopack/HMR
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          for (const registration of registrations) {
+            registration.unregister().then((success) => {
+              if (success) console.log("Service Worker des-registrado para desarrollo para evitar conflictos HMR.");
+            });
+          }
         });
+      }
     }
 
     return () => {

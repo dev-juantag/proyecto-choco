@@ -115,14 +115,20 @@ export async function GET(request: Request) {
       'dispResiduos', 'dispResiduosOtro', 'riesgoAccidente', 'riesgoAccidenteOtro', 'fuenteEnergia', 'presenciaVectores', 'animales', 'animalesOtro',
       'cantAnimales', 'vacunacionMascotas',
       // FAMILIA
-      'tipoFamilia', 'numIntegrantes', 'apgar', 'apgar_P1', 'apgar_P2', 'apgar_P3', 'apgar_P4', 'apgar_P5', 'ecomapa', 'cuidadorPrincipal', 'zarit', 'vulnerabilidades',
+      'tipoFamilia', 'numIntegrantes', 'apgar', 'apgar_P1', 'apgar_P2', 'apgar_P3', 'apgar_P4', 'apgar_P5', 
+      'ecomapa', 'ecomapa_P1', 'ecomapa_P2', 'ecomapa_P3', 'ecomapa_P4', 'ecomapa_P5',
+      'cuidadorPrincipal', 'zarit', 'zarit_P1', 'zarit_P2', 'zarit_P3', 'zarit_P4', 'zarit_P5', 'vulnerabilidades',
       // INTEGRANTES
       'pacienteId', 'nombres', 'apellidos', 'tipoDoc', 'documento', 'fechaNacimiento', 'genero',
       'parentesco', 'gestante', 'mesesGestacion', 'telefono', 'nivelEducativo',
       'ocupacion', 'regimen', 'eapb', 'etnia', 'puebloIndigena', 'grupoPoblacional', 'grupoPoblacionalOtro', 'discapacidades', 'discapacidadesOtro', 'barrerasAccesoOtro',
-      'peso', 'talla', 'perimetroBraquial', 'diagNutricional', 'practicaDeportiva', 'lactanciaMaterna',
+      'peso', 'talla', 'perimetroBraquial', 'perimetroCefalico', 'perimetroAbdominal', 'diagNutricional', 'practicaDeportiva', 'lactanciaMaterna',
       'lactanciaMeses', 'esquemaAtenciones', 'esquemaVacunacion', 'intervencionesPendientes',
-      'enfermedadAguda', 'recibeAtencionMedica', 'remisiones', 'antecedentesCronicos', 'antecedentesOtro', 'antecedentesTransmisibles', 'antecTransmisiblesOtro'
+      'enfermedadAguda', 'recibeAtencionMedica', 'remisiones', 'antecedentesCronicos', 'antecedentesOtro', 'antecedentesTransmisibles', 'antecTransmisiblesOtro',
+      // METALES PESADOS (MINERÍA)
+      'metalOcupacion', 'metalOcupacionTiempo', 'metalAmbiental', 'metalPescado', 
+      'metalSintomasNeu', 'metalSintomasRen', 'metalSintomasDig', 'metalSintomasOtr', 
+      'metalAntecedenteDiag', 'metalAntecedentePrueba', 'metalResultadoPrueba', 'metalClasificacionRiesgo'
     ]
 
     const rows: string[] = []
@@ -184,13 +190,23 @@ export async function GET(request: Request) {
         cleanCsv(Array.isArray((f as any).apgarRespuestas) ? (f as any).apgarRespuestas[3] : ''),
         cleanCsv(Array.isArray((f as any).apgarRespuestas) ? (f as any).apgarRespuestas[4] : ''),
         cleanCsv(getLabel(ECOMAPA_OPCIONES, f.ecomapa)),
+        cleanCsv(Array.isArray((f as any).ecomapaRespuestas) ? (f as any).ecomapaRespuestas[0] : ''),
+        cleanCsv(Array.isArray((f as any).ecomapaRespuestas) ? (f as any).ecomapaRespuestas[1] : ''),
+        cleanCsv(Array.isArray((f as any).ecomapaRespuestas) ? (f as any).ecomapaRespuestas[2] : ''),
+        cleanCsv(Array.isArray((f as any).ecomapaRespuestas) ? (f as any).ecomapaRespuestas[3] : ''),
+        cleanCsv(Array.isArray((f as any).ecomapaRespuestas) ? (f as any).ecomapaRespuestas[4] : ''),
         cleanCsv(f.cuidadorPrincipal ? 'SI' : 'NO'),
         cleanCsv(getLabel(ZARIT_OPCIONES, f.zarit)),
+        cleanCsv(Array.isArray((f as any).zaritRespuestas) ? (f as any).zaritRespuestas[0] : ''),
+        cleanCsv(Array.isArray((f as any).zaritRespuestas) ? (f as any).zaritRespuestas[1] : ''),
+        cleanCsv(Array.isArray((f as any).zaritRespuestas) ? (f as any).zaritRespuestas[2] : ''),
+        cleanCsv(Array.isArray((f as any).zaritRespuestas) ? (f as any).zaritRespuestas[3] : ''),
+        cleanCsv(Array.isArray((f as any).zaritRespuestas) ? (f as any).zaritRespuestas[4] : ''),
         getLabels(VULNERABILIDADES, f.vulnerabilidades)
       ]
 
       if (!f.pacientes || f.pacientes.length === 0) {
-         const emptyPatientCols = Array(34).fill('"NULL"');
+         const emptyPatientCols = Array(53).fill('"NULL"');
          rows.push([...baseRowData, ...emptyPatientCols].join(';'))
       } else {
          f.pacientes.forEach((p: any) => {
@@ -220,6 +236,8 @@ export async function GET(request: Request) {
               cleanCsv(p.peso, true),
               cleanCsv(p.talla, true),
               cleanCsv(p.perimetroBraquial, true),
+              cleanCsv(p.perimetroCefalico, true),
+              cleanCsv(p.perimetroAbdominal, true),
               cleanCsv(getLabel(DIAGNOSTICO_NUTRICIONAL, p.diagNutricional)),
               cleanCsv(p.practicaDeportiva ? 'SI' : 'NO'),
               cleanCsv(p.lactanciaMaterna ? 'SI' : 'NO'),
@@ -233,7 +251,20 @@ export async function GET(request: Request) {
               getLabels(ANTECEDENTES_CRONICOS, p.antecedentes),
               cleanCsv((p as any).otrosJson?.antecedentesOtro),
               getLabels(ANTECEDENTES_TRANSMISIBLES, p.antecTransmisibles),
-              cleanCsv((p as any).otrosJson?.antecTransmisiblesOtro)
+              cleanCsv((p as any).otrosJson?.antecTransmisiblesOtro),
+              // METALES PESADOS (MINERÍA)
+              cleanCsv(Array.isArray(p.riesgoMetalesPesados?.ocupacion) ? p.riesgoMetalesPesados.ocupacion.join(', ') : (p.riesgoMetalesPesados?.ocupacion || '')),
+              cleanCsv(p.riesgoMetalesPesados?.ocupacionTiempo || ''),
+              cleanCsv(Array.isArray(p.riesgoMetalesPesados?.ambiental) ? p.riesgoMetalesPesados.ambiental.join(', ') : (p.riesgoMetalesPesados?.ambiental || '')),
+              cleanCsv(p.riesgoMetalesPesados?.pescado || ''),
+              cleanCsv(Array.isArray(p.riesgoMetalesPesados?.sintomasNeu) ? p.riesgoMetalesPesados.sintomasNeu.join(', ') : (p.riesgoMetalesPesados?.sintomasNeu || '')),
+              cleanCsv(Array.isArray(p.riesgoMetalesPesados?.sintomasRen) ? p.riesgoMetalesPesados.sintomasRen.join(', ') : (p.riesgoMetalesPesados?.sintomasRen || '')),
+              cleanCsv(Array.isArray(p.riesgoMetalesPesados?.sintomasDig) ? p.riesgoMetalesPesados.sintomasDig.join(', ') : (p.riesgoMetalesPesados?.sintomasDig || '')),
+              cleanCsv(Array.isArray(p.riesgoMetalesPesados?.sintomasOtr) ? p.riesgoMetalesPesados.sintomasOtr.join(', ') : (p.riesgoMetalesPesados?.sintomasOtr || '')),
+              cleanCsv(p.riesgoMetalesPesados?.antecedenteDiagnostico || ''),
+              cleanCsv(p.riesgoMetalesPesados?.antecedentePruebas || ''),
+              cleanCsv(p.riesgoMetalesPesados?.resultadoPruebas || ''),
+              cleanCsv(p.riesgoMetalesPesados?.clasificacionRiesgo || 'BAJO')
             ]
 
             rows.push([...baseRowData, ...patientRowData].join(';'))

@@ -1,10 +1,11 @@
-import { ArrowLeft, Printer, MapPin, Info, Home, Users, Activity, Stethoscope, FileText, Network, Edit, Phone, Plus, CheckSquare, ClipboardList, Trash2 } from 'lucide-react'
+import { ArrowLeft, Printer, MapPin, Info, Home, Users, Activity, Stethoscope, FileText, Network, Edit, Phone, Plus, CheckSquare, ClipboardList, Trash2, Lock, Unlock } from 'lucide-react'
 import { 
   ESTADO_VISITA, APGAR_OPCIONES, calcularEdad, 
   FUENTE_AGUA, DISPOSICION_EXCRETAS, AGUAS_RESIDUALES, 
   DISPOSICION_RESIDUOS, RIESGO_ACCIDENTE, ANIMALES,
   GRUPO_POBLACIONAL, DISCAPACIDADES, BARRERAS_ACCESO,
-  ANTECEDENTES_CRONICOS, ANTECEDENTES_TRANSMISIBLES, PARENTESCO
+  ANTECEDENTES_CRONICOS, ANTECEDENTES_TRANSMISIBLES, PARENTESCO,
+  ECOMAPA_OPCIONES, ZARIT_OPCIONES, VULNERABILIDADES, TIPO_VIVIENDA, TIPO_FAMILIA, FUENTE_ENERGIA
 } from '@/lib/constants'
 import FamiliogramaViewer from './FamiliogramaViewer'
 import { useState } from 'react'
@@ -117,6 +118,55 @@ export default function ResumenFicha({
   const totalSegPages = Math.ceil(totalSeguimientos / segLimit) || 1;
   const paginatedSeguimientos = ficha.seguimientos?.slice((segPage - 1) * segLimit, segPage * segLimit) || [];
 
+  const getLabels = (arr: any[], ids: any) => {
+    const list = Array.isArray(ids) ? ids : (ids ? [ids] : []);
+    if (list.length === 0) return 'Ninguno';
+    return list.map((id: any) => getLabel(arr, id)).join(', ');
+  }
+
+  const getApgarScoreText = () => {
+    let cat = getLabel(APGAR_OPCIONES, ficha.apgar).split(' (')[0];
+    if (ficha.apgarRespuestas && Array.isArray(ficha.apgarRespuestas)) {
+      const valid = ficha.apgarRespuestas.filter((v: any) => v !== null && v !== undefined);
+      if (valid.length > 0) {
+        const score = ficha.apgarRespuestas.reduce((a: number, b: number) => a + (b || 0), 0);
+        if (score >= 17) cat = 'Normal';
+        else if (score >= 13) cat = 'Disfunción leve';
+        else if (score >= 10) cat = 'Disfunción moderada';
+        else cat = 'Disfunción severa';
+      }
+    }
+    return cat;
+  }
+
+  const getEcomapaScoreText = () => {
+    let cat = getLabel(ECOMAPA_OPCIONES, ficha.ecomapa).split(' (')[0];
+    if (ficha.ecomapaRespuestas && Array.isArray(ficha.ecomapaRespuestas)) {
+      const valid = ficha.ecomapaRespuestas.filter((v: any) => v !== null && v !== undefined);
+      if (valid.length > 0) {
+        const score = ficha.ecomapaRespuestas.reduce((a: number, b: number) => a + (b || 0), 0);
+        if (score >= 8) cat = 'Red de apoyo adecuada';
+        else if (score >= 5) cat = 'Red de apoyo limitada';
+        else cat = 'Red de apoyo insuficiente';
+      }
+    }
+    return cat;
+  }
+
+  const getZaritScoreText = () => {
+    let cat = getLabel(ZARIT_OPCIONES, ficha.zarit).split(' (')[0];
+    if (ficha.zaritRespuestas && Array.isArray(ficha.zaritRespuestas)) {
+      const valid = ficha.zaritRespuestas.filter((v: any) => v !== null && v !== undefined);
+      if (valid.length > 0) {
+        const score = ficha.zaritRespuestas.reduce((a: number, b: number) => a + (b || 0), 0);
+        if (score >= 13) cat = 'Sobrecarga intensa';
+        else if (score >= 8) cat = 'Sobrecarga leve';
+        else cat = 'Sin sobrecarga';
+      }
+    }
+    return cat;
+  }
+
   return (
     <div className="w-full flex flex-col bg-gray-50/50 min-h-[70vh] print:hidden">
       
@@ -139,47 +189,65 @@ export default function ResumenFicha({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          {(user?.rol === 'auxiliar' || isSuperAdmin || isAdmin || isEnfermeria()) && (
-            <button
-              onClick={() => window.print()}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white text-[#081e69] rounded-full font-bold text-sm shadow hover:bg-blue-50 transition-colors"
-            >
-              <Printer className="w-4 h-4" /> Imprimir Identificación
-            </button>
-          )}
-          <div className={`px-4 py-1.5 rounded-full font-black text-xs tracking-widest border ${
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full md:w-auto md:justify-end">
+          {/* 1. Estado de la Visita (Efectiva/No Efectiva/Negada) */}
+          <div className={`px-3 py-1.5 rounded-full font-black text-[10px] sm:text-xs tracking-widest border shrink-0 ${
             ficha.estadoVisita === '1' ? 'bg-teal-100 text-teal-800 border-teal-200' :
             ficha.estadoVisita === '2' ? 'bg-orange-100 text-orange-800 border-orange-200' :
             'bg-red-100 text-red-800 border-red-200'
           }`}>
             {estadoVisitaLabel}
           </div>
-          
-          {/* Botones de Actualización */}
-          {(isSuperAdmin || isAdmin || isEnfermeria()) && onEnableUpdate && (
-            <button
-              onClick={() => onEnableUpdate(ficha.id, ficha.puedeActualizarse)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-xs shadow-sm transition-colors border ${
-                ficha.puedeActualizarse 
-                  ? 'bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200' 
-                  : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
-              }`}
-            >
-              <Edit className="w-3 h-3" /> 
-              {ficha.puedeActualizarse ? 'Deshabilitar Edición' : 'Permitir Edición'}
-            </button>
+
+          {/* 2. Botón de Actualización / Habilitar o Deshabilitar Edición */}
+          {ficha.puedeActualizarse ? (
+            <div className="flex items-center gap-1.5">
+              {(user?.rol === 'auxiliar' || isSuperAdmin) && onGoToEdit && (
+                <button
+                  onClick={onGoToEdit}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-400 text-amber-900 rounded-full font-black text-[11px] sm:text-xs shadow hover:bg-amber-500 transition-colors shrink-0"
+                >
+                  <Edit className="w-3 h-3" /> Actualizar Ficha
+                </button>
+              )}
+              {isSuperAdmin && onEnableUpdate && (
+                <button
+                  onClick={() => onEnableUpdate(ficha.id, true)}
+                  className="p-1.5 bg-amber-100 text-amber-700 border border-amber-200 rounded-full hover:bg-amber-200 transition-colors shadow-sm shrink-0"
+                  title="Deshabilitar Edición"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                </button>
+              )}
+              {!isSuperAdmin && (isAdmin || isEnfermeria()) && onEnableUpdate && (
+                <button
+                  onClick={() => onEnableUpdate(ficha.id, true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 text-amber-700 border border-amber-200 rounded-full font-bold text-[11px] sm:text-xs shadow-sm hover:bg-amber-200 transition-colors shrink-0"
+                >
+                  <Lock className="w-3 h-3" /> Deshabilitar Edición
+                </button>
+              )}
+            </div>
+          ) : (
+            (isSuperAdmin || isAdmin || isEnfermeria()) && onEnableUpdate && (
+              <button
+                onClick={() => onEnableUpdate(ficha.id, false)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white rounded-full font-bold text-[11px] sm:text-xs shadow-sm hover:bg-emerald-600 transition-colors shrink-0"
+              >
+                <Unlock className="w-3.5 h-3.5" /> Permitir Edición
+              </button>
+            )
           )}
 
-          {(user?.rol === 'auxiliar' || isSuperAdmin) && ficha.puedeActualizarse && onGoToEdit && (
+          {/* 3. Imprimir Ficha */}
+          {(user?.rol === 'auxiliar' || isSuperAdmin || isAdmin || isEnfermeria()) && (
             <button
-              onClick={onGoToEdit}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-400 text-amber-900 rounded-full font-black text-sm shadow hover:bg-amber-500 transition-colors"
+              onClick={() => window.print()}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white text-[#081e69] rounded-full font-bold text-[11px] sm:text-xs shadow hover:bg-blue-50 transition-colors shrink-0"
             >
-              <Edit className="w-4 h-4" /> Actualizar Ficha
+              <Printer className="w-3.5 h-3.5" /> Imprimir Ficha
             </button>
           )}
-
         </div>
       </div>
 
@@ -202,15 +270,13 @@ export default function ResumenFicha({
             </div>
             
             <div className="grid grid-cols-2 gap-y-6 gap-x-4">
-              <div>
-                <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Territorio</p>
-                <p className="font-bold text-gray-800 text-sm">
-                  {codigoTerritorio || ficha.territorio || ficha.territorioId || 'S/N'}
-                </p>
-              </div>
-              <div>
+              <div className="col-span-2">
                 <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Municipio</p>
                 <p className="font-bold text-gray-800 text-sm uppercase">{ficha.municipio}, {ficha.departamento}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Barrio / Poblado / Sector</p>
+                <p className="font-bold text-gray-800 text-sm uppercase">{ficha.centroPoblado || 'No registrado'}</p>
               </div>
               <div className="col-span-2">
                 <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Dirección</p>
@@ -222,7 +288,7 @@ export default function ResumenFicha({
               </div>
               <div className="col-span-2">
                 <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Georreferenciación (Lat, Lng)</p>
-                <p className="font-bold text-gray-800 text-sm">
+                <p className="font-bold text-gray-800 text-sm font-mono">
                   {ficha.latitud && ficha.longitud ? `${Number(ficha.latitud).toFixed(7)}, ${Number(ficha.longitud).toFixed(7)}` : 'Sin registrar'}
                 </p>
               </div>
@@ -255,13 +321,17 @@ export default function ResumenFicha({
                   </span>
                 </div>
               </div>
-              <div>
-                <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Núm Hogar</p>
+              <div className="col-span-2">
+                <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">CÓDIGO / NÚMERO DE HOGAR</p>
                 <p className="font-bold text-gray-800 text-sm">{displayNumHogar}</p>
               </div>
-              <div className="-ml-[35px]">
-                <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Familia ID</p>
+              <div className="col-span-2">
+                <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">CÓDIGO / NÚMERO DE FAMILIA</p>
                 <p className="font-bold text-gray-800 text-sm break-all">{displayNumFamilia}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">CÓDIGO DE FICHA</p>
+                <p className="font-bold text-gray-800 text-sm break-all">{ficha.codFicha || 'N/A'}</p>
               </div>
             </div>
           </div>
@@ -308,67 +378,104 @@ export default function ResumenFicha({
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-y-8 gap-x-6">
             <div>
-              <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Dormitorios</p>
-              <p className="font-bold text-gray-800 text-xl">{ficha.numDormitorios || 1}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Estrato Social</p>
-              <p className="font-bold text-gray-800 text-xl">{ficha.estratoSocial || 2}</p>
+              <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Tipo de Vivienda</p>
+              <p className="font-bold text-gray-800 text-sm leading-tight uppercase">{getLabel(TIPO_VIVIENDA, ficha.tipoVivienda)}{ficha.tipoViviendaDesc ? ` - ${ficha.tipoViviendaDesc}` : ''}</p>
             </div>
             <div>
               <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Total Hogares</p>
               <p className="font-bold text-gray-800 text-xl">{ficha.numHogares || 1}</p>
             </div>
             <div>
+              <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Estrato Social</p>
+              <p className="font-bold text-gray-800 text-xl">{ficha.estratoSocial || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Dormitorios</p>
+              <p className="font-bold text-gray-800 text-xl">{ficha.numDormitorios || 0}</p>
+            </div>
+            <div>
               <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Hacinamiento</p>
               <p className={`font-bold text-xl ${ficha.hacinamiento ? 'text-red-600' : 'text-emerald-600'}`}>{ficha.hacinamiento ? 'Sí' : 'No'}</p>
-            </div>
-            
-            <div>
-              <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">APGAR Familiar</p>
-              <p className="font-bold text-gray-800 text-sm mt-1 leading-tight">{getLabel(APGAR_OPCIONES, ficha.apgar) || '-'}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Vectores/Plagas</p>
-              <p className="font-bold text-gray-800 text-xl">{ficha.presenciaVectores ? 'Sí' : 'No'}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Animales</p>
-              <p className="font-bold text-gray-800 text-xl">{ficha.cantAnimales || 0}</p>
             </div>
             <div>
               <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Total Integrantes</p>
               <p className="font-bold text-gray-800 text-xl">{ficha.numIntegrantes || ficha.pacientes?.length || 0}</p>
             </div>
+            <div>
+              <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">APGAR Familiar</p>
+              <p className="font-bold text-gray-800 text-sm mt-1 leading-tight">{getApgarScoreText()}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Ecomapa Familiar</p>
+              <p className="font-bold text-gray-800 text-sm mt-1 leading-tight">{getEcomapaScoreText()}</p>
+            </div>
+            {ficha.cuidadorPrincipal && (
+              <div>
+                <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Sobrecarga Zarit</p>
+                <p className="font-bold text-gray-800 text-sm mt-1 leading-tight">{getZaritScoreText()}</p>
+              </div>
+            )}
+            <div className="col-span-2">
+              <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Vulnerabilidades Sociales</p>
+              <p className="font-bold text-gray-800 text-xs mt-1 leading-normal uppercase">{getLabels(VULNERABILIDADES, ficha.vulnerabilidades)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Vectores / Plagas</p>
+              <p className="font-bold text-gray-800 text-sm mt-1">{ficha.presenciaVectores ? 'Sí' : 'No'}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Total de Animales</p>
+              <p className="font-bold text-gray-800 text-xl">{ficha.cantAnimales || 0}</p>
+            </div>
+            <div className="col-span-2">
+              <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Mascotas (Tipos y Vacunación)</p>
+              {ficha.cantAnimales > 0 ? (
+                <div className="flex flex-col gap-1 mt-1">
+                  <span className="font-bold text-gray-800 text-xs uppercase">{getLabels(ANIMALES, ficha.animales)}</span>
+                  <div>
+                    <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-black tracking-wider uppercase ${ficha.vacunacionMascotas ? 'bg-orange-50 text-orange-700 border border-orange-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'}`}>
+                      {ficha.vacunacionMascotas ? 'Requiere Vacunación / Pendiente' : 'Vacunación al Día'}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <p className="font-medium text-gray-400 text-sm italic">Sin mascotas registradas</p>
+              )}
+            </div>
           </div>
 
           <div className="mt-8 pt-6 border-t border-gray-100">
-            <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Servicios y Saneamiento</h3>
+            <h3 className="text-xs font-black text-[#081e69] uppercase tracking-widest mb-4">Servicios y Saneamiento</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
                 { label: 'Fuente de Agua', vals: ficha.fuenteAgua, catalog: FUENTE_AGUA, otro: ficha.otrosJson?.fuenteAguaOtro },
-                { label: 'Disp. Excretas', vals: ficha.dispExcretas, catalog: DISPOSICION_EXCRETAS, otro: ficha.otrosJson?.dispExcretasOtro },
+                { label: 'Disposición de Excretas', vals: ficha.dispExcretas, catalog: DISPOSICION_EXCRETAS, otro: ficha.otrosJson?.dispExcretasOtro },
                 { label: 'Aguas Residuales', vals: ficha.aguasResiduales, catalog: AGUAS_RESIDUALES, otro: ficha.otrosJson?.aguasResidualesOtro },
-                { label: 'Residuos Sólidos', vals: ficha.dispResiduos, catalog: DISPOSICION_RESIDUOS, otro: ficha.otrosJson?.dispResiduosOtro },
-                { label: 'Riesgos Vivienda', vals: ficha.riesgoAccidente, catalog: RIESGO_ACCIDENTE, otro: ficha.otrosJson?.riesgoAccidenteOtro },
-                { label: 'Animales/Mascotas', vals: ficha.animales, catalog: ANIMALES, otro: ficha.otrosJson?.animalesOtro }
+                { label: 'Disposición de Residuos', vals: ficha.dispResiduos, catalog: DISPOSICION_RESIDUOS, otro: ficha.otrosJson?.dispResiduosOtro },
+                { label: 'Riesgos de Accidente', vals: ficha.riesgoAccidente, catalog: RIESGO_ACCIDENTE, otro: ficha.otrosJson?.riesgoAccidenteOtro || ficha.otrosJson?.riesdeAccidenteOtro },
+                { label: 'Fuente de Energía para Cocinar', vals: [ficha.fuenteEnergia], catalog: FUENTE_ENERGIA, otro: ficha.otrosJson?.fuenteEnergiaOtro }
               ].map((item, idx) => (
                 <div key={idx} className="flex flex-col gap-1">
                   <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase">{item.label}</p>
                   <div className="flex flex-wrap gap-1.5 items-center">
-                    {Array.isArray(item.vals) && item.vals.length > 0 ? (
-                      item.vals.map((v: any, index: number) => (
-                        <span key={v} className="font-bold text-gray-800 text-sm">
-                          {getLabel(item.catalog, v)}{index < item.vals.length - 1 ? ', ' : ''}
-                        </span>
-                      ))
+                    {Array.isArray(item.vals) && item.vals.filter(v => v !== null && v !== undefined && v !== '').length > 0 ? (
+                      item.vals.filter(v => v !== null && v !== undefined && v !== '').map((v: any, index: number) => {
+                        const lbl = getLabel(item.catalog, v);
+                        if ((lbl === 'Otro' || lbl === 'Otros') && item.otro) {
+                          return (
+                            <span key={v} className="font-bold text-gray-800 text-sm uppercase">
+                              {item.otro}{index < item.vals.length - 1 ? ', ' : ''}
+                            </span>
+                          );
+                        }
+                        return (
+                          <span key={v} className="font-bold text-gray-800 text-sm uppercase">
+                            {lbl}{index < item.vals.length - 1 ? ', ' : ''}
+                          </span>
+                        );
+                      })
                     ) : (
                       <span className="text-gray-400 text-sm italic">No registrado</span>
-                    )}
-                    {item.otro && (
-                      <span className="text-blue-600 text-sm font-bold">
-                        (Otro: {item.otro})
-                      </span>
                     )}
                   </div>
                 </div>
@@ -387,7 +494,9 @@ export default function ResumenFicha({
             </div>
             <div>
               <h2 className="font-bold text-gray-800">Censo de Integrantes</h2>
-              <p className="text-[10px] font-black tracking-widest text-gray-400 uppercase">Miembros del Hogar ({ficha.pacientes?.length || 0})</p>
+              <p className="text-[10px] font-black tracking-widest text-gray-400 uppercase">
+                Miembros del Hogar ({ficha.pacientes?.length || 0}) {getLabel(TIPO_FAMILIA, ficha.tipoFamilia).split(' (')[0]}
+              </p>
             </div>
           </div>
 
@@ -395,65 +504,71 @@ export default function ResumenFicha({
             {ficha.pacientes?.map((pac: any, i: number) => {
               const iniciales = `${pac.nombres.charAt(0)}${pac.apellidos.charAt(0)}`.toUpperCase()
               return (
-                  <div key={pac.id || i} className="flex flex-col gap-4 p-4 rounded-xl border border-gray-100 hover:border-gray-300 transition-colors">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-500 font-black text-lg flex items-center justify-center flex-shrink-0">
-                          {iniciales}
+                <div key={pac.id || i} className="flex flex-col gap-3 p-4 rounded-xl border border-gray-100 bg-gray-50/30 hover:border-gray-200 hover:bg-white transition-all shadow-sm">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                    {/* Left Side: Avatar & Core Info */}
+                    <div className="flex items-start sm:items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#081e69]/10 text-[#081e69] font-black text-xs sm:text-base flex items-center justify-center flex-shrink-0">
+                        {iniciales}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-black text-gray-800 uppercase text-xs sm:text-sm leading-tight truncate">
+                            {pac.nombres} {pac.apellidos}
+                          </h3>
+                          <span className="bg-blue-50 text-blue-700 text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded font-black tracking-widest uppercase border border-blue-100 inline-block shrink-0">
+                            {getLabel(PARENTESCO, pac.parentesco || 1)}
+                          </span>
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <h3 className="font-black text-gray-800 uppercase text-sm leading-none pt-1">{pac.nombres} {pac.apellidos}</h3>
-                          
-                          <div className="mt-0.5">
-                            <span className="bg-blue-50 text-blue-700 text-[9px] px-1.5 py-0.5 rounded font-black tracking-widest uppercase border border-blue-100 inline-block">
-                              {getLabel(PARENTESCO, pac.parentesco || 1)}
-                            </span>
-                          </div>
-                          
-                          <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                            <span className="bg-slate-500 text-white text-[10px] px-2 py-0.5 rounded flex items-center gap-1 uppercase font-bold tracking-wider">
-                              {pac.tipoDoc} {pac.numDoc}
-                            </span>
-                            <span className="text-xs text-gray-500 font-medium">
-                              NAC: {pac.fechaNacimiento} ({calcularEdad(pac.fechaNacimiento)} años)
-                            </span>
-                          </div>
+                        
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+                          <span className="bg-slate-500 text-white text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">
+                            {pac.tipoDoc} {pac.numDoc || pac.documento}
+                          </span>
+                          <span className="text-[11px] sm:text-xs text-gray-500 font-medium">
+                            Nac: <span className="font-semibold text-gray-700">{pac.fechaNacimiento}</span> ({calcularEdad(pac.fechaNacimiento)} años)
+                          </span>
                         </div>
                       </div>
+                    </div>
 
-                      <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full md:w-auto mt-2 md:mt-0 pt-3 md:pt-0 border-t md:border-0 border-gray-100">
-                        {pac.telefono ? (
-                          <a 
-                            href={`tel:${pac.telefono}`} 
-                            className="flex items-center justify-center w-[42px] h-[42px] bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg transition-colors shadow-sm shrink-0"
-                            title={`Llamar al ${pac.telefono}`}
-                          >
-                            <Phone className="w-5 h-5" />
-                          </a>
-                        ) : (
-                          <div className="flex items-center justify-center w-[42px] h-[42px] bg-orange-50 text-orange-600 border border-orange-200 rounded-lg shadow-sm shrink-0" title="Sin teléfono registrado">
-                            <span className="text-[9px] font-black uppercase text-center leading-tight">
-                              Sin<br/>Tel
-                            </span>
-                          </div>
-                        )}
-                        <div className="grid grid-cols-3 gap-2 w-full sm:w-[320px]">
-                          <div className="bg-white border text-center border-gray-200 rounded-lg px-2 py-1.5 shadow-sm">
-                            <p className="text-[9px] font-black text-gray-400 tracking-widest uppercase truncate">Género</p>
-                            <p className="font-black text-xs text-gray-800 uppercase leading-tight truncate">{pac.sexo?.toLowerCase() || 'N/A'}</p>
-                          </div>
-                          <div className="bg-white border text-center border-gray-200 rounded-lg px-2 py-1.5 shadow-sm">
-                            <p className="text-[9px] font-black text-gray-400 tracking-widest uppercase truncate">Régimen</p>
-                            <p className="font-black text-xs text-gray-800 uppercase leading-tight truncate">{pac.regimen || 'N/A'}</p>
-                          </div>
-                          <div className="bg-white border text-center border-gray-200 rounded-lg px-2 py-1.5 shadow-sm">
-                            <p className="text-[9px] font-black text-gray-400 tracking-widest uppercase truncate">EPS</p>
-                            <p className="font-black text-xs text-gray-800 uppercase leading-tight truncate">{pac.eapb || 'N/A'}</p>
-                          </div>
+                    {/* Right Side: Metrics & Phone */}
+                    <div className="flex items-center gap-3 w-full lg:w-auto mt-2 lg:mt-0 pt-3 lg:pt-0 border-t lg:border-0 border-gray-100">
+                      {/* Phone button */}
+                      {pac.telefono ? (
+                        <a 
+                          href={`tel:${pac.telefono}`} 
+                          className="flex items-center justify-center w-10 h-10 sm:w-[42px] sm:h-[42px] bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl transition-colors shadow-sm shrink-0"
+                          title={`Llamar al ${pac.telefono}`}
+                        >
+                          <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </a>
+                      ) : (
+                        <div className="flex items-center justify-center w-10 h-10 sm:w-[42px] sm:h-[42px] bg-orange-50 text-orange-600 border border-orange-200 rounded-xl shadow-sm shrink-0" title="Sin teléfono registrado">
+                          <span className="text-[8px] sm:text-[9px] font-black uppercase text-center leading-tight">
+                            Sin<br/>Tel
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Metrics Grid */}
+                      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 w-full lg:w-[320px]">
+                        <div className="bg-white border text-center border-gray-200 rounded-xl px-2 py-1.5 shadow-sm min-w-0 flex flex-col justify-center items-center">
+                          <p className="text-[8px] font-black text-gray-400 tracking-wider uppercase">Género</p>
+                          <p className="font-bold text-[9px] sm:text-[10px] text-gray-800 uppercase leading-tight mt-0.5 break-words text-center">{pac.sexo?.toLowerCase() || 'N/A'}</p>
+                        </div>
+                        <div className="bg-white border text-center border-gray-200 rounded-xl px-2 py-1.5 shadow-sm min-w-0 flex flex-col justify-center items-center">
+                          <p className="text-[8px] font-black text-gray-400 tracking-wider uppercase">Régimen</p>
+                          <p className="font-bold text-[9px] sm:text-[10px] text-gray-800 uppercase leading-tight mt-0.5 break-words text-center">{pac.regimen || 'N/A'}</p>
+                        </div>
+                        <div className="bg-white border text-center border-gray-200 rounded-xl px-2 py-1.5 shadow-sm min-w-0 flex flex-col justify-center items-center">
+                          <p className="text-[8px] font-black text-gray-400 tracking-wider uppercase">EPS</p>
+                          <p className="font-bold text-[9px] sm:text-[10px] text-gray-800 uppercase leading-tight mt-0.5 break-words text-center">{pac.eapb || 'N/A'}</p>
                         </div>
                       </div>
                     </div>
                   </div>
+                </div>
               )
             })}
           </div>

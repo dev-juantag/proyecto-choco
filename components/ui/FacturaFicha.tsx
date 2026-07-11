@@ -3,13 +3,17 @@ import {
   FUENTE_AGUA, DISPOSICION_EXCRETAS, AGUAS_RESIDUALES, DISPOSICION_RESIDUOS, RIESGO_ACCIDENTE,
   FUENTE_ENERGIA, ANIMALES, TIPO_FAMILIA, APGAR_OPCIONES, ZARIT_OPCIONES, ECOMAPA_OPCIONES,
   VULNERABILIDADES, DIAGNOSTICO_NUTRICIONAL, PARENTESCO, REGIMEN_SALUD, OCUPACION,
-  APGAR_PREGUNTAS
+  APGAR_PREGUNTAS, ECOMAPA_PREGUNTAS, ZARIT_PREGUNTAS, ETNIA, GRUPO_POBLACIONAL, 
+  BARRERAS_ACCESO, DISCAPACIDADES, NIVEL_EDUCATIVO, ANTECEDENTES_CRONICOS,
+  ANTECEDENTES_TRANSMISIBLES, INTERVENCIONES_PENDIENTES, REMISIONES_SISTEMA, PERFIL_ENCUESTADOR
 } from '@/lib/constants'
 import FamiliogramaViewer from './FamiliogramaViewer'
 import FamiliogramaStaticViewer from './FamiliogramaStaticViewer'
 
 export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha: any, autoPrint?: boolean, showOnScreen?: boolean }) {
   if (!ficha) return null
+
+  const esImpar = (ficha.pacientes?.length || 0) % 2 !== 0;
 
   const calculateAge = (dob: string) => {
     if (!dob) return '-';
@@ -22,27 +26,128 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
     return age;
   };
 
-  const chunkArray = (arr: any[], size: number) => {
-    return Array.from({ length: Math.ceil(arr.length / size) }, (v, i) =>
-      arr.slice(i * size, i * size + size)
-    );
-  };
-  const integranteChunks = chunkArray(ficha.pacientes || [], 3);
+  const calculateIMC = (peso: number | null | undefined, tallaCm: number | null | undefined) => {
+    if (!peso || !tallaCm) return { imc: 'null', clasificacion: 'null' };
+    const tallaM = tallaCm / 100;
+    const imcVal = peso / (tallaM * tallaM);
+    let clasificacion = 'Normal';
+    if (imcVal < 18.5) clasificacion = 'Bajo peso';
+    else if (imcVal < 25) clasificacion = 'Normal';
+    else if (imcVal < 30) clasificacion = 'Sobrepeso';
+    else if (imcVal < 35) clasificacion = 'Obesidad Grado I';
+    else if (imcVal < 40) clasificacion = 'Obesidad Grado II';
+    else clasificacion = 'Obesidad Grado III';
+    return { imc: imcVal.toFixed(1), clasificacion };
+  }
 
-  const getLabel = (arr: any[], id: any) => arr.find(x => String(x.id) === String(id))?.label || id || 'N/A'
+  const getLabel = (arr: any[], id: any) => {
+    if (id && typeof id === 'object') {
+      const realId = id.id || id.key || Object.keys(id)[0];
+      return arr.find(x => String(x.id) === String(realId))?.label || realId || 'N/A';
+    }
+    return arr.find(x => String(x.id) === String(id))?.label || id || 'N/A';
+  }
   
   const getLabels = (arr: any[], ids: any[]) => {
-    if (!ids || !Array.isArray(ids) || ids.length === 0) return 'Ninguno';
-    return ids.map(id => getLabel(arr, id)).join(', ');
+    if (!ids) return 'Ninguno';
+    const parsedIds = Array.isArray(ids) ? ids : (typeof ids === 'object' ? Object.keys(ids).filter(k => ids[k] === true) : [ids]);
+    if (parsedIds.length === 0) return 'Ninguno';
+    return parsedIds.map(id => getLabel(arr, id)).join(', ');
+  }
+
+  const parseMedicalHistoryList = (val: any) => {
+    if (!val) return [];
+    if (Array.isArray(val)) {
+      return val.map(item => {
+        if (item && typeof item === 'object') {
+          return item.id || item.key || Object.keys(item)[0];
+        }
+        return item;
+      }).filter(Boolean);
+    }
+    if (typeof val === 'object') {
+      return Object.keys(val).filter(key => val[key] === true || val[key] === 'true');
+    }
+    return [val];
+  };
+
+  const getLabelsWithOtros = (arr: any[], ids: any[], otroVal: string | null | undefined) => {
+    if (!ids) return 'Ninguno';
+    const parsedIds = Array.isArray(ids) ? ids : (typeof ids === 'object' ? Object.keys(ids).filter(k => ids[k] === true) : [ids]);
+    if (parsedIds.length === 0) return 'Ninguno';
+    return parsedIds.map(id => {
+      const lbl = getLabel(arr, id);
+      if ((lbl === 'Otro' || lbl === 'Otros') && otroVal) {
+        return otroVal;
+      }
+      return lbl;
+    }).join(', ');
+  }
+
+  const getMetalRiskScoreText = (meta: any) => {
+    if (!meta || meta.aplicaExposicion !== true) return { value: 'BAJO', label: 'BAJO' };
+    let pts = 0;
+    if (meta.ocupacion && meta.ocupacion !== 'NINGUNA' && meta.ocupacion !== 'Ninguna') pts += 2;
+    if (meta.ocupacionTiempo === '1-5') pts += 1;
+    else if (meta.ocupacionTiempo === 'mas-5' || meta.ocupacionTiempo === '6-10' || meta.ocupacionTiempo === 'mas-10') pts += 2;
+    if (meta.continuaExpuesto === 'SI' || meta.continuaExpuesto === 'Si') pts += 2;
+    if (meta.utilizaEPP === 'ALGUNAS_VECES' || meta.utilizaEPP === 'Algunas veces') pts += 1;
+    else if (meta.utilizaEPP === 'NUNCA' || meta.utilizaEPP === 'Nunca') pts += 2;
+    if (meta.ambiental && meta.ambiental !== 'NINGUNO' && meta.ambiental !== 'Ninguno') pts += 2;
+    if (meta.ambientalTiempo === '1-5') pts += 1;
+    else if (meta.ambientalTiempo === 'mas-5') pts += 2;
+    if (meta.pescado === 'OCASIONAL' || meta.pescado === 'Ocasional') pts += 1;
+    else if (meta.pescado === '1_2_SEMANA' || meta.pescado === '1 o 2 veces por semana' || meta.pescado === '3_MAS') pts += 2;
+    if (meta.amalgamas === 'SI_10_MAS' || meta.amalgamas === 'si, mas de 10 años') pts += 1;
+
+    if (pts >= 10) return { value: 'ALTO', label: 'ALTO' };
+    if (pts >= 5) return { value: 'MEDIO', label: 'MEDIO' };
+    return { value: 'BAJO', label: 'BAJO' };
+  }
+
+  const getOcupacionTiempoLabel = (val: string) => {
+    if (!val) return 'null';
+    if (val === '1-5') return '1 a 5 años';
+    if (val === 'mas-5' || val === '6-10' || val === 'mas-10') return 'mas de 5 años';
+    return val;
+  }
+  const getAmbientalTiempoLabel = (val: string) => {
+    if (!val) return 'null';
+    if (val === '1-5') return '1 a 5 años';
+    if (val === 'mas-5') return 'mas de 5 años';
+    return val;
+  }
+  const getPescadoLabel = (val: string) => {
+    if (!val) return 'null';
+    if (val === '1_2_SEMANA') return '1 o 2 veces por semana';
+    if (val === '3_MAS') return '3 o más veces por semana';
+    if (val === 'OCASIONAL') return 'Ocasional';
+    return val;
+  }
+  const getAmalgamasLabel = (val: string) => {
+    if (!val) return 'null';
+    if (val === 'SI_10_MAS') return 'si, mas de 10 años';
+    if (val === 'SI_MENOS_10') return 'si, menos de 10 años';
+    return val;
+  }
+
+  // Formato visual para IDs garantizando que tengan el código del territorio y hogar para trazabilidad
+  const codigoTerritorio = ficha.territorioCodigo || ficha.territorio?.codigo || ''
+  let displayNumHogar = ficha.numHogar || '-';
+  if (ficha.numHogar && codigoTerritorio && !ficha.numHogar.startsWith(codigoTerritorio)) {
+    displayNumHogar = `${codigoTerritorio}${ficha.numHogar.replace(/^H?/, 'H')}`;
+  }
+  let displayNumFamilia = ficha.numFamilia || '-';
+  if (ficha.numFamilia && displayNumHogar !== '-' && !ficha.numFamilia.startsWith(displayNumHogar)) {
+    displayNumFamilia = `${displayNumHogar}${ficha.numFamilia.replace(/^F?/, 'F')}`;
   }
 
   // Estilos base para la impresión
-  const sectionCls = "mb-8"
-  const headerCls = "font-black text-xl uppercase mb-4 pb-2 border-b-2 border-black"
-  const subHeaderCls = "font-bold text-lg uppercase mb-3 bg-gray-100 p-2"
-  const tblCls = "w-full text-left border-collapse mb-6 print:break-inside-avoid"
-  const thCls = "font-bold text-sm w-1/3 py-1.5 align-top uppercase border-b border-gray-300"
-  const tdCls = "text-sm py-1.5 align-top border-b border-gray-200"
+  const sectionCls = "mb-6"
+  const headerCls = "font-black text-lg uppercase mb-3 pb-1.5 border-b-2 border-black"
+  const tblCls = "w-full text-left border-collapse mb-5 print:break-inside-avoid"
+  const thCls = "font-bold text-xs w-1/3 py-1 align-top uppercase border-b border-gray-300"
+  const tdCls = "text-xs py-1 align-top border-b border-gray-200"
 
   const Th = ({ children, className, style }: { children: React.ReactNode, className?: string, style?: React.CSSProperties }) => <th className={`${thCls} ${className || ''}`} style={style}>{children}</th>
   const Td = ({ children, className, style }: { children: React.ReactNode, className?: string, style?: React.CSSProperties }) => <td className={`${tdCls} ${className || ''}`} style={style}>{children}</td>
@@ -52,39 +157,49 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
     <style type="text/css" media="print">
       {`
         @page {
-          margin-top: 1.5cm;
-          margin-bottom: 1.5cm;
+          margin-top: 2.2cm;
+          margin-bottom: 2.5cm;
           margin-left: 1cm;
           margin-right: 1cm;
         }
+        body {
+          background-color: white !important;
+        }
       `}
     </style>
-    <div className={`${showOnScreen ? 'block' : 'absolute w-[1024px] h-[500px] overflow-hidden -z-50 opacity-0 pointer-events-none print:static print:w-[1024px] print:h-auto print:opacity-100 print:overflow-visible print:pointer-events-auto'} font-sans text-black bg-white max-w-none mx-auto p-4 md:p-8 leading-normal print:px-0 print:pt-0 print:pb-0 relative`}>
-      <div className="hidden print:flex fixed inset-0 pointer-events-none items-center justify-center opacity-[0.03] z-0" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '100vw', height: '100vh' }}>
-        <span className="text-[130px] font-black uppercase rotate-[-45deg] whitespace-nowrap text-gray-900 tracking-tighter" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>DOCUMENTO OFICIAL</span>
+    
+    <div className={`${showOnScreen ? 'block' : 'absolute w-[1024px] h-auto -z-50 top-[-99999px] left-[-99999px] pointer-events-none print:static print:w-[1024px] print:h-auto print:opacity-100 print:overflow-visible print:pointer-events-auto'} font-sans text-black bg-white max-w-none mx-auto p-4 md:p-8 leading-normal relative`}>
+      
+      {/* PIE DE PAGINA FIJO EN CADA HOJA AL IMPRIMIR */}
+      <div className="hidden print:block fixed bottom-0 left-0 right-0 text-center text-xs text-gray-500 uppercase italic pt-2.5 pb-2 bg-white border-t border-gray-300 w-full z-50">
+        <p className="font-bold text-black text-[10px]">** DOCUMENTO DE CARÁCTER CONFIDENCIAL Y RESTRINGIDO **</p>
+        <p className="mt-0.5 normal-case text-[9px] text-gray-500">Los datos de salud e identificación familiar pertenecen al sistema departamental y su uso está regulado por la Ley de Protección de Datos Personales.</p>
+        <p className="mt-0.5 font-mono text-[8px] text-gray-400">{ficha.id?.toUpperCase()}</p>
       </div>
-      <div className="relative z-10">
+
+      <div className="relative z-10 pb-16">
       {/* HEADER GLOBAL */}
-      <div className="flex items-center justify-between mb-8 pb-4" style={{ borderBottom: '4px solid black' }}>
-        <img src="/logo-gobernacion-risaralda.png" alt="Logo Gobernación" className="w-24 h-24 shrink-0 object-contain" />
+      <div className="flex items-center justify-between mb-6 pb-3" style={{ borderBottom: '4px solid black' }}>
+        <img src="/logo-gobernacion-risaralda.png" alt="Logo Gobernación" className="w-20 h-20 shrink-0 object-contain" />
         <div className="text-center px-4 flex-1">
-          <h1 className="font-black text-3xl uppercase tracking-widest">Identificación Familiar</h1>
-          <p className="font-bold text-lg mt-2 tracking-widest text-gray-600">FICHA OFICIAL NO. {ficha.consecutivo || ficha.id?.substring(0,8)}</p>
-          <p className="mt-1 font-sans text-sm text-gray-500">Documento impreso el {new Date().toLocaleString('es-CO')}</p>
+          <h1 className="font-black text-2xl uppercase tracking-widest">Identificación Familiar</h1>
+          <p className="font-bold text-base mt-1 tracking-widest text-gray-600">FICHA OFICIAL NO. {ficha.consecutivo || ficha.id?.substring(0,8)}</p>
+          <p className="mt-0.5 font-sans text-xs text-gray-500">Documento impreso el {new Date().toLocaleString('es-CO')}</p>
         </div>
-        <img src="/icono-ese-salud-pereira.png" alt="Logo ESE Salud Paimadó" className="w-24 h-24 shrink-0 object-contain" />
+        <img src="/icono-ese-salud-pereira.png" alt="Logo ESE Salud Paimadó" className="w-20 h-20 shrink-0 object-contain" />
       </div>
 
       {/* CASO A: FICHA RECHAZADA O NO EFECTIVA (VERSIÓN CORTA) */}
       {ficha.estadoVisita !== '1' ? (
-        <div className="space-y-8">
+        <div className="space-y-6">
           <div>
             <h2 className={headerCls}>1. Control y Responsables</h2>
-            <table className={`${tblCls} print:break-inside-avoid`}>
+            <table className={tblCls}>
               <tbody>
                 <tr><Th>Estado de la Visita</Th><Td><span className="font-bold uppercase bg-gray-200 px-2 py-1 rounded">{getLabel(ESTADO_VISITA, ficha.estadoVisita)}</span></Td></tr>
                 <tr><Th>Fecha de Diligenciamiento</Th><Td>{new Date(ficha.fechaDiligenciamiento).toLocaleString('es-CO')}</Td></tr>
                 <tr><Th>Responsable / Encuestador</Th><Td>{ficha.encuestador ? `${ficha.encuestador.nombre} ${ficha.encuestador.apellidos}` : (ficha.encuestadorNombreRaw || ficha.perfilEncuestador || 'N/A')}</Td></tr>
+                <tr><Th>Perfil del Encuestador</Th><Td className="uppercase">{getLabel(PERFIL_ENCUESTADOR, ficha.perfilEncuestador)}</Td></tr>
                 <tr><Th>Doc. Encuestador</Th><Td>{ficha.encuestador ? `${ficha.encuestador.documento}` : (ficha.encuestadorDocRaw || ficha.numDocEncuestador || 'N/A')}</Td></tr>
               </tbody>
             </table>
@@ -92,19 +207,18 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
 
           <div>
             <h2 className={headerCls}>2. Ubicación y Georreferenciación</h2>
-            <table className={`${tblCls} print:break-inside-avoid`}>
+            <table className={tblCls}>
               <tbody>
                 <tr><Th>Municipio</Th><Td>{ficha.municipio}</Td></tr>
-                <tr><Th>Territorio</Th><Td>{typeof ficha.territorio === 'object' && ficha.territorio ? `${ficha.territorio.codigo} | ${ficha.territorio.nombre}` : (ficha.territorio || ficha.territorioId)}</Td></tr>
                 <tr><Th>Dirección</Th><Td>{ficha.direccion}</Td></tr>
                 <tr><Th>GPS</Th><Td className="font-sans text-xs">{(ficha.latitud != null && ficha.longitud != null) ? `Lat: ${Number(ficha.latitud).toFixed(7)}, Lng: ${Number(ficha.longitud).toFixed(7)}` : 'Sin coordenadas'}</Td></tr>
               </tbody>
             </table>
           </div>
 
-          <div className="p-6 border-4 border-black rounded-xl">
-             <h2 className="font-black text-lg uppercase mb-2">3. Motivo de No Efectividad / Rechazo</h2>
-             <p className="text-xl font-bold italic">
+          <div className="p-4 border-2 border-black rounded-lg">
+             <h2 className="font-black text-base uppercase mb-1">3. Motivo de No Efectividad / Rechazo</h2>
+             <p className="text-base font-bold italic">
                &quot;{ficha.observacionesRechazo || 'No se registraron observaciones adicionales por parte del encuestador.'}&quot;
              </p>
           </div>
@@ -112,35 +226,35 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
       ) : (
         /* CASO B: FICHA EFECTIVA (VERSIÓN COMPLETA) */
         <>
+          {/* PAGINA 1: Control, Códigos, Ubicación y Características Físicas de la Vivienda */}
           <div className={sectionCls} style={{ pageBreakAfter: 'always' }}>
             <h2 className={headerCls}>1. Control y Responsables</h2>
-            <table className={`${tblCls} print:break-inside-avoid`}>
+            <table className={tblCls}>
               <tbody>
-                <tr><Th>Estado de la Visita</Th><Td><span className="font-bold uppercase bg-gray-200 px-2 py-1 rounded">{getLabel(ESTADO_VISITA, ficha.estadoVisita)}</span></Td></tr>
+                <tr><Th>Estado de la Visita</Th><Td><span className="font-bold uppercase bg-gray-200 px-2 py-0.5 rounded">{getLabel(ESTADO_VISITA, ficha.estadoVisita)}</span></Td></tr>
                 <tr><Th>Fecha de Diligenciamiento</Th><Td>{new Date(ficha.fechaDiligenciamiento).toLocaleString('es-CO')}</Td></tr>
                 <tr><Th>Equipo de territorio</Th><Td>{ficha.equipoTerritorio || 'N/A'}</Td></tr>
                 <tr><Th>Código EBS (No. Identificación)</Th><Td>{ficha.numEBS || 'N/A'}</Td></tr>
                 <tr><Th>Responsable / Encuestador</Th><Td>{ficha.encuestador ? `${ficha.encuestador.nombre} ${ficha.encuestador.apellidos}` : (ficha.encuestadorNombreRaw || ficha.perfilEncuestador || 'N/A')}</Td></tr>
+                <tr><Th>Perfil del Encuestador</Th><Td className="uppercase">{getLabel(PERFIL_ENCUESTADOR, ficha.perfilEncuestador)}</Td></tr>
                 <tr><Th>Doc. Encuestador</Th><Td>{ficha.encuestador ? `${ficha.encuestador.documento}` : (ficha.encuestadorDocRaw || ficha.numDocEncuestador || 'N/A')}</Td></tr>
               </tbody>
             </table>
 
             <h2 className={headerCls}>2. Códigos de Identificación</h2>
-            <table className={`${tblCls} print:break-inside-avoid`}>
+            <table className={tblCls}>
               <tbody>
-                <tr><Th>Código de Ficha</Th><Td>{ficha.codFicha || 'N/A'}</Td></tr>
-                <tr><Th>Código / Número de Hogar</Th><Td className="font-sans">{ficha.numHogar || 'N/A'}</Td></tr>
-                <tr><Th>Código / Número de Familia</Th><Td className="font-sans">{ficha.numFamilia || 'N/A'}</Td></tr>
-                <tr><Th>Código UZPE</Th><Td>{ficha.uzpe || 'N/A'}</Td></tr>
+                <tr><Th>Código / Número de Hogar</Th><Td className="font-sans font-bold">{displayNumHogar}</Td></tr>
+                <tr><Th>Código / Número de Familia</Th><Td className="font-sans font-bold">{displayNumFamilia}</Td></tr>
+                <tr><Th>Código de Ficha</Th><Td className="font-sans font-bold">{ficha.codFicha || 'N/A'}</Td></tr>
               </tbody>
             </table>
 
             <h2 className={headerCls}>3. Ubicación y Georreferenciación</h2>
-            <table className={`${tblCls} print:break-inside-avoid`}>
+            <table className={tblCls}>
               <tbody>
                 <tr><Th>Departamento</Th><Td>{ficha.departamento}</Td></tr>
                 <tr><Th>Municipio</Th><Td>{ficha.municipio}</Td></tr>
-                <tr><Th>Territorio</Th><Td>{typeof ficha.territorio === 'object' && ficha.territorio ? `${ficha.territorio.codigo} | ${ficha.territorio.nombre}` : (ficha.territorio || ficha.territorioId)}</Td></tr>
                 <tr><Th>Clase de Centro Poblado</Th><Td>{ficha.centroPoblado || 'N/A'}</Td></tr>
                 <tr><Th>Dirección</Th><Td>{ficha.direccion}</Td></tr>
                 <tr><Th>Descripción de Ubicación</Th><Td>{ficha.descripcionUbicacion || 'N/A'}</Td></tr>
@@ -149,7 +263,7 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
             </table>
 
             <h2 className={headerCls}>4. Características Físicas de la Vivienda</h2>
-            <table className={`${tblCls} print:break-inside-avoid`}>
+            <table className={tblCls}>
               <tbody>
                 <tr><Th>Tipo de Vivienda</Th><Td>{getLabel(TIPO_VIVIENDA, ficha.tipoVivienda)}{ficha.tipoViviendaDesc ? ` - ${ficha.tipoViviendaDesc}` : ''}</Td></tr>
                 <tr><Th>Material de Paredes</Th><Td>{getLabel(MATERIAL_PAREDES, ficha.matParedes)}</Td></tr>
@@ -159,70 +273,15 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
                 <tr><Th>Dormitorios Exclusivos</Th><Td>{ficha.numDormitorios || 0}</Td></tr>
                 <tr><Th>Estrato Social</Th><Td>{ficha.estratoSocial || 'N/A'}</Td></tr>
                 <tr><Th>Hacinamiento Habitacional</Th><Td>{ficha.hacinamiento ? 'Sí (Crítico)' : 'No'}</Td></tr>
-                <tr><Th>Fuente de Energía Principal</Th><Td>{getLabel(FUENTE_ENERGIA, ficha.fuenteEnergia)}</Td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div className={sectionCls} style={{ pageBreakAfter: 'always' }}>
-            <h2 className={headerCls}>5. Saneamiento Básico</h2>
-            <table className={`${tblCls} print:break-inside-avoid`}>
-              <tbody>
-                <tr><Th>Fuente de Agua</Th><Td>{getLabels(FUENTE_AGUA, ficha.fuenteAgua)}</Td></tr>
-                <tr><Th>Servicio Sanitario / Excretas</Th><Td>{getLabels(DISPOSICION_EXCRETAS, ficha.dispExcretas)}</Td></tr>
-                <tr><Th>Disposición Aguas Residuales</Th><Td>{getLabels(AGUAS_RESIDUALES, ficha.aguasResiduales)}</Td></tr>
-                <tr><Th>Recolección de Residuos</Th><Td>{getLabels(DISPOSICION_RESIDUOS, ficha.dispResiduos)}</Td></tr>
-                <tr><Th>Riesgos en la Vivienda</Th><Td>{getLabels(RIESGO_ACCIDENTE, ficha.riesgoAccidente)}</Td></tr>
-                <tr><Th>Presencia de Vectores</Th><Td>{ficha.presenciaVectores ? 'Identificada' : 'No identificada'}</Td></tr>
-                <tr><Th>Tenencia de Mascotas</Th><Td>{getLabels(ANIMALES, ficha.animales)} (Total: {ficha.cantAnimales || 0})</Td></tr>
-                {(ficha.cantAnimales > 0) && (
-                  <tr><Th>Vacunación de Mascotas</Th><Td>{ficha.vacunacionMascotas ? 'Requiere / Pendiente' : 'Al día'}</Td></tr>
-                )}
-              </tbody>
-            </table>
-
-            <h2 className={headerCls}>6. Composición y Dinámica Familiar</h2>
-            <table className={`${tblCls} print:break-inside-avoid`}>
-              <tbody>
-                <tr><Th>Tipo de Familia</Th><Td>{getLabel(TIPO_FAMILIA, ficha.tipoFamilia)}</Td></tr>
-                <tr><Th>Número de Integrantes</Th><Td>{ficha.numIntegrantes || 0}</Td></tr>
-              </tbody>
-            </table>
-
-            <h2 className={headerCls}>7. Funcionamiento Familiar (Apgar)</h2>
-            <table className={`${tblCls} print:break-inside-avoid`}>
-              <tbody>
-                {APGAR_PREGUNTAS.map((pregunta: string, idx: number) => {
-                  const valorRespuesta = ficha.apgarRespuestas ? ficha.apgarRespuestas[idx] : null;
-                  const APGAR_VALORES = ['Nunca (0)', 'Casi nunca (1)', 'A veces (2)', 'Casi siempre (3)', 'Siempre (4)'];
-                  const textoRespuesta = valorRespuesta != null ? APGAR_VALORES[valorRespuesta] : 'No respondido';
-                  return (
-                    <tr key={idx}>
-                      <Th className="font-medium text-xs">{pregunta}</Th>
-                      <Td className="font-bold text-xs">{textoRespuesta}</Td>
-                    </tr>
-                  )
-                })}
-                <tr className="bg-gray-100 italic">
-                  <Th className="font-black">Nivel de satisfacción (Apgar Global)</Th>
-                  <Td className="font-black" style={{ fontSize: '1.2rem' }}>
+                <tr>
+                  <Th>Fuente de Energía Principal</Th>
+                  <Td>
                     {(() => {
-                      let cat = getLabel(APGAR_OPCIONES, ficha.apgar).split(' (')[0];
-                      let pts = '?';
-                      if (ficha.apgarRespuestas && Array.isArray(ficha.apgarRespuestas)) {
-                        const valid = ficha.apgarRespuestas.filter((v:any) => v !== null && v !== undefined);
-                        if (valid.length > 0) {
-                          const score = ficha.apgarRespuestas.reduce((a: number,b: number) => a + (b || 0), 0);
-                          pts = score.toString();
-                          if (score >= 17) cat = 'Normal';
-                          else if (score >= 13) cat = 'Disfunción leve';
-                          else if (score >= 10) cat = 'Disfunción moderada';
-                          else cat = 'Disfunción severa';
-                        } else {
-                          cat = 'Sin respuesta / Manual';
-                        }
+                      const lbl = getLabel(FUENTE_ENERGIA, ficha.fuenteEnergia);
+                      if ((lbl === 'Otro' || lbl === 'Otros') && ficha.otrosJson?.fuenteEnergiaOtro) {
+                        return ficha.otrosJson.fuenteEnergiaOtro;
                       }
-                      return `${cat} - Puntaje Final: ${pts} / 20`;
+                      return lbl;
                     })()}
                   </Td>
                 </tr>
@@ -230,181 +289,469 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
             </table>
           </div>
 
-          <div className={sectionCls} style={{ pageBreakAfter: 'always' }}>
-            <h2 className={headerCls}>8. Carga del Cuidador (Zarit)</h2>
-            <table className={`${tblCls} print:break-inside-avoid`}>
+          {/* PAGINA 2: Saneamiento, Composición y Escalas APGAR, ECOMAPA y ZARIT */}
+          <div className={sectionCls} style={{ pageBreakBefore: 'always', paddingTop: '1.1cm' }}>
+            <h2 className={headerCls}>5. Saneamiento Básico</h2>
+            <table className={tblCls}>
               <tbody>
-                <tr><Th>Cuidador Principal en Casa</Th><Td>{ficha.cuidadorPrincipal ? 'Sí' : 'No'}</Td></tr>
-                {ficha.cuidadorPrincipal && (
-                  <tr><Th>Nivel de Sobrecarga (Zarit)</Th><Td className="font-bold">{getLabel(ZARIT_OPCIONES, ficha.zarit)}</Td></tr>
+                <tr><Th>Fuente de Agua</Th><Td>{getLabelsWithOtros(FUENTE_AGUA, ficha.fuenteAgua, ficha.otrosJson?.fuenteAguaOtro)}</Td></tr>
+                <tr><Th>Servicio Sanitario / Excretas</Th><Td>{getLabelsWithOtros(DISPOSICION_EXCRETAS, ficha.dispExcretas, ficha.otrosJson?.dispExcretasOtro)}</Td></tr>
+                <tr><Th>Disposición Aguas Residuales</Th><Td>{getLabelsWithOtros(AGUAS_RESIDUALES, ficha.aguasResiduales, ficha.otrosJson?.aguasResidualesOtro)}</Td></tr>
+                <tr><Th>Recolección de Residuos</Th><Td>{getLabelsWithOtros(DISPOSICION_RESIDUOS, ficha.dispResiduos, ficha.otrosJson?.dispResiduosOtro)}</Td></tr>
+                <tr><Th>Riesgos en la Vivienda</Th><Td>{getLabelsWithOtros(RIESGO_ACCIDENTE, ficha.riesgoAccidente, ficha.otrosJson?.riesgoAccidenteOtro || ficha.otrosJson?.riesdeAccidenteOtro)}</Td></tr>
+                <tr><Th>Presencia de Vectores</Th><Td>{ficha.presenciaVectores ? 'Sí' : 'No'}</Td></tr>
+                <tr><Th>Tenencia de Mascotas</Th><Td>{getLabelsWithOtros(ANIMALES, ficha.animales, ficha.otrosJson?.animalesOtro)} (Total: {ficha.cantAnimales || 0})</Td></tr>
+                {(ficha.cantAnimales > 0) && (
+                  <tr><Th>Vacunación de Mascotas</Th><Td>{ficha.vacunacionMascotas ? 'Requiere / Pendiente' : 'Al día'}</Td></tr>
                 )}
               </tbody>
             </table>
 
-            <div className="col-span-2 p-4 border-2 border-slate-300 rounded">
-              <h3 className="font-black mb-2 flex items-center justify-between">
-                Ecomapa Familiar y Redes de Apoyo
-              </h3>
-              <p className="text-lg font-bold text-gray-700">{getLabel(ECOMAPA_OPCIONES, ficha.ecomapa)}</p>
-              <p className="text-xs text-gray-500 mt-2">Nivel de interacción de la familia con sistemas externos (salud, educación, comunidad).</p>
+            <h2 className={headerCls}>6. Composición y Dinámica Familiar</h2>
+            <table className={tblCls}>
+              <tbody>
+                <tr><Th>Tipo de Familia</Th><Td>{getLabel(TIPO_FAMILIA, ficha.tipoFamilia)}</Td></tr>
+                <tr><Th>Número de Integrantes</Th><Td>{ficha.numIntegrantes || 0}</Td></tr>
+                <tr><Th>Vulnerabilidades del Hogar</Th><Td className="uppercase">{getLabels(VULNERABILIDADES, ficha.vulnerabilidades)}</Td></tr>
+              </tbody>
+            </table>
+
+            <h2 className={headerCls}>7. Funcionamiento Familiar (Apgar)</h2>
+            <table className={tblCls}>
+              <tbody>
+                {APGAR_PREGUNTAS.map((pregunta: string, idx: number) => {
+                  const valorRespuesta = ficha.apgarRespuestas ? ficha.apgarRespuestas[idx] : null;
+                  const APGAR_VALORES = ['Nunca (0)', 'Casi nunca (1)', 'A veces (2)', 'Casi siempre (3)', 'Siempre (4)'];
+                  const textoRespuesta = valorRespuesta != null ? APGAR_VALORES[valorRespuesta] : 'No respondido';
+                  return (
+                    <tr key={idx}>
+                      <Th className="font-medium text-[10px]">{pregunta}</Th>
+                      <Td className="font-bold text-xs">{textoRespuesta}</Td>
+                    </tr>
+                  )
+                })}
+                <tr className="bg-gray-100 italic">
+                  <Th className="font-black">Resultado Apgar</Th>
+                  <Td className="font-black" style={{ fontSize: '1rem' }}>
+                    {(() => {
+                      let cat = getLabel(APGAR_OPCIONES, ficha.apgar).split(' (')[0];
+                      if (ficha.apgarRespuestas && Array.isArray(ficha.apgarRespuestas)) {
+                        const valid = ficha.apgarRespuestas.filter((v:any) => v !== null && v !== undefined);
+                        if (valid.length > 0) {
+                          const score = ficha.apgarRespuestas.reduce((a: number,b: number) => a + (b || 0), 0);
+                          if (score >= 17) cat = 'Normal';
+                          else if (score >= 13) cat = 'Disfunción leve';
+                          else if (score >= 10) cat = 'Disfunción moderada';
+                          else cat = 'Disfunción severa';
+                        }
+                      }
+                      return cat;
+                    })()}
+                  </Td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h2 className={headerCls}>8. Ecomapa Familiar y Redes de Apoyo</h2>
+            <table className={tblCls}>
+              <tbody>
+                {ECOMAPA_PREGUNTAS.map((pregunta: string, idx: number) => {
+                  const valorRespuesta = ficha.ecomapaRespuestas ? ficha.ecomapaRespuestas[idx] : null;
+                  const ECOMAPA_VALORES = ['No (0)', 'Parcialmente (1)', 'Sí (2)'];
+                  const textoRespuesta = valorRespuesta != null ? ECOMAPA_VALORES[valorRespuesta] : 'No respondido';
+                  return (
+                    <tr key={idx}>
+                      <Th className="font-medium text-[10px]">{pregunta}</Th>
+                      <Td className="font-bold text-xs">{textoRespuesta}</Td>
+                    </tr>
+                  )
+                })}
+                <tr className="bg-gray-100 italic">
+                  <Th className="font-black">Resultado Ecomapa</Th>
+                  <Td className="font-black" style={{ fontSize: '1rem' }}>
+                    {getLabel(ECOMAPA_OPCIONES, ficha.ecomapa).split(' (')[0]}
+                  </Td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h2 className={headerCls}>9. Carga del Cuidador (Zarit)</h2>
+            <table className={tblCls}>
+              <tbody>
+                <tr>
+                  <Th>Cuidador Principal en Casa</Th>
+                  <Td className="font-bold">{ficha.cuidadorPrincipal ? 'Sí' : 'No'}</Td>
+                </tr>
+                {ficha.cuidadorPrincipal && (
+                  <>
+                    {ZARIT_PREGUNTAS.map((pregunta: string, idx: number) => {
+                      const valorRespuesta = ficha.zaritRespuestas ? ficha.zaritRespuestas[idx] : null;
+                      const ZARIT_VALORES = ['Nunca (0)', 'Rara vez (1)', 'Algunas veces (2)', 'Bastantes veces (3)', 'Casi siempre (4)'];
+                      const textoRespuesta = valorRespuesta != null ? ZARIT_VALORES[valorRespuesta] : 'No respondido';
+                      return (
+                        <tr key={idx}>
+                          <Th className="font-medium text-[10px]">{pregunta}</Th>
+                          <Td className="font-bold text-xs">{textoRespuesta}</Td>
+                        </tr>
+                      )
+                    })}
+                    <tr className="bg-gray-100 italic">
+                      <Th className="font-black">Nivel de Sobrecarga (Zarit)</Th>
+                      <Td className="font-black" style={{ fontSize: '1rem' }}>
+                        {getLabel(ZARIT_OPCIONES, ficha.zarit).split(' (')[0]}
+                      </Td>
+                    </tr>
+                  </>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* PAGINA 3: Familiograma */}
+          {ficha.familiogramaCodigo && (
+            <div className={sectionCls} style={{ pageBreakBefore: 'always', paddingTop: '1.1cm' }}>
+              <h2 className={headerCls}>Familiograma Clínico</h2>
+              <div className="border border-slate-300 rounded min-h-[600px] h-auto relative w-full">
+                {!String(ficha.familiogramaCodigo).startsWith('{') ? (
+                  <FamiliogramaViewer code={ficha.familiogramaCodigo} />
+                ) : (
+                  <FamiliogramaStaticViewer jsonString={ficha.familiogramaCodigo} isPrintView={true} />
+                )}
+              </div>
             </div>
-            
-            {ficha.familiogramaCodigo && (
-              <div className="mt-8 mb-6 print:break-inside-avoid">
-                <h2 className={headerCls}>9. Familiograma Clínico</h2>
-                <div className="border border-slate-300 rounded overflow-hidden min-h-[500px] h-[500px] relative">
-                  {!String(ficha.familiogramaCodigo).startsWith('{') ? (
-                    <FamiliogramaViewer code={ficha.familiogramaCodigo} />
-                  ) : (
-                    <FamiliogramaStaticViewer jsonString={ficha.familiogramaCodigo} isPrintView={true} />
-                  )}
+          )}
+
+          {/* PAGINAS DE INTEGRANTES */}
+          <div className={sectionCls} style={{ pageBreakBefore: 'always', paddingTop: '1.1cm' }}>
+            <h2 className={headerCls}>10. Censo e Información de Integrantes</h2>
+            {ficha.pacientes && ficha.pacientes.length > 0 ? (
+              ficha.pacientes.map((int: any, intIdx: number) => {
+                const globalIdx = intIdx + 1;
+                return (
+                  <div 
+                    key={int.id || intIdx} 
+                    className="mb-8 border-b-2 border-dashed border-gray-300 pb-6 last:border-0 print:break-inside-avoid"
+                    style={intIdx > 0 && intIdx % 2 === 0 ? { pageBreakBefore: 'always', paddingTop: '1.1cm' } : {}}
+                  >
+                    {/* ID & Nombres */}
+                    <div className="flex items-center gap-2 mb-4 mt-2">
+                      <div className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center font-bold text-xs">
+                        #{globalIdx}
+                      </div>
+                      <h3 className="font-black text-base uppercase">
+                        {int.nombres ? `${int.nombres} ${int.apellidos}` : `${int.primerNombre || ''} ${int.segundoNombre || ''} ${int.primerApellido || ''} ${int.segundoApellido || ''}`.trim()}
+                      </h3>
+                    </div>
+
+                    {/* Información Básica */}
+                    <div className="grid grid-cols-2 gap-x-8">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <tbody>
+                          <tr><th className="font-bold py-1 w-2/5 border-b border-gray-100">Documento:</th><td className="py-1 border-b border-gray-100 uppercase">{int.tipoDoc} {int.documento || int.numDoc}</td></tr>
+                          <tr><th className="font-bold py-1 border-b border-gray-100">Nacimiento:</th><td className="py-1 border-b border-gray-100">{int.fechaNacimiento} ({calculateAge(int.fechaNacimiento)} años)</td></tr>
+                          <tr><th className="font-bold py-1 border-b border-gray-100">Género:</th><td className="py-1 border-b border-gray-100 uppercase">{int.sexo}</td></tr>
+                          <tr><th className="font-bold py-1 border-b border-gray-100">Parentesco:</th><td className="py-1 border-b border-gray-100 uppercase">{getLabel(PARENTESCO, int.parentesco)}</td></tr>
+                          <tr><th className="font-bold py-1 border-b border-gray-100">Régimen / EAPB:</th><td className="py-1 border-b border-gray-100 uppercase">{getLabel(REGIMEN_SALUD, int.regimen)} / {int.eapb || '-'}</td></tr>
+                          <tr><th className="font-bold py-1 border-b border-gray-100">Ocupación:</th><td className="py-1 border-b border-gray-100 uppercase">{getLabel(OCUPACION, int.ocupacion)}</td></tr>
+                          <tr><th className="font-bold py-1 border-b border-gray-100">Nivel Educativo:</th><td className="py-1 border-b border-gray-100 uppercase">{getLabel(NIVEL_EDUCATIVO, int.nivelEducativo)}</td></tr>
+                          <tr>
+                            <th className="font-bold py-1 border-b border-gray-100">Pertenencia Étnica:</th>
+                            <td className="py-1 border-b border-gray-100 uppercase">
+                              {getLabel(ETNIA, int.etnia)}
+                              {String(int.etnia) === '1' && int.puebloIndigena ? ` (${int.puebloIndigena})` : ''}
+                            </td>
+                          </tr>
+                          <tr><th className="font-bold py-1 border-b border-gray-100">Grupo Pob. Especial:</th><td className="py-1 border-b border-gray-100 uppercase">{getLabels(GRUPO_POBLACIONAL, int.grupoPoblacional)}</td></tr>
+                        </tbody>
+                      </table>
+
+                      <table className="w-full text-left text-xs border-collapse">
+                        <tbody>
+                          <tr><th className="font-bold py-1 w-2/5 border-b border-gray-100">Peso / Talla:</th><td className="py-1 border-b border-gray-100">{int.peso ? `${int.peso} kg` : '-'} / {int.talla ? `${int.talla} cm` : '-'}</td></tr>
+                          <tr>
+                            <th className="font-bold py-1 border-b border-gray-100">IMC / Obesidad:</th>
+                            <td className="py-1 border-b border-gray-100 font-bold uppercase">
+                              {(() => {
+                                const res = calculateIMC(int.peso, int.talla);
+                                return `${res.imc} (${res.clasificacion})`;
+                              })()}
+                            </td>
+                          </tr>
+                          <tr><th className="font-bold py-1 border-b border-gray-100">P. Braquial:</th><td className="py-1 border-b border-gray-100">{int.perimetroBraquial ? `${int.perimetroBraquial} cm` : '-'}</td></tr>
+                          <tr><th className="font-bold py-1 border-b border-gray-100">Diag. Nutricional:</th><td className="py-1 border-b border-gray-100 uppercase">{getLabel(DIAGNOSTICO_NUTRICIONAL, int.diagNutricional)}</td></tr>
+                          <tr><th className="font-bold py-1 border-b border-gray-100">Gestante:</th><td className="py-1 border-b border-gray-100 font-bold uppercase">{int.gestante || 'NO'}{int.gestante === 'SI' && int.mesesGestacion ? ` (${int.mesesGestacion} meses)` : ''}</td></tr>
+                          <tr><th className="font-bold py-1 border-b border-gray-100">Discapacidades:</th><td className="py-1 border-b border-gray-100 uppercase">{getLabels(DISCAPACIDADES, int.discapacidades)}</td></tr>
+                          <tr><th className="font-bold py-1 border-b border-gray-100">Barreras de Acceso:</th><td className="py-1 border-b border-gray-100 uppercase">{getLabels(BARRERAS_ACCESO, int.barrerasAcceso)}</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Sub-bloques de salud */}
+                    <div className="grid grid-cols-2 gap-x-8 mt-4 pt-3 border-t border-gray-200">
+                      {/* Antecedentes & Signos Vitales */}
+                      <div>
+                        <p className="font-bold text-[#081e69] uppercase tracking-wider text-[10px] mb-2">Antecedentes & Signos Vitales</p>
+                        <div className="space-y-1 text-[10px]">
+                          <p className="text-gray-500 font-semibold uppercase">A. Crónicos: <span className="font-bold text-gray-800 text-black">
+                            {(() => {
+                              const list = parseMedicalHistoryList(int.antecedentes);
+                              if (list.length === 0) return 'Ninguno';
+                              let text = list.map(id => getLabel(ANTECEDENTES_CRONICOS, id)).join(', ');
+                              if (list.includes('CA') && int.tipoCancer) {
+                                text += ` (Tipo: ${int.tipoCancer})`;
+                              }
+                              return text;
+                            })()}
+                          </span></p>
+                          <p className="text-gray-500 font-semibold uppercase">A. Transmisibles: <span className="font-bold text-gray-800 text-black">
+                            {(() => {
+                              const list = parseMedicalHistoryList(int.antecTransmisibles);
+                              if (list.length === 0) return 'Ninguno';
+                              return list.map(id => getLabel(ANTECEDENTES_TRANSMISIBLES, id)).join(', ');
+                            })()}
+                          </span></p>
+                          <p className="text-gray-500 font-semibold uppercase">Presión Arterial: <span className="font-bold text-gray-800">{int.presionArterial || 'null'}</span></p>
+                          <p className="text-gray-500 font-semibold uppercase">Frec. Cardíaca / Resp: <span className="font-bold text-gray-800">
+                            {(int.frecuenciaCardiaca || int.frecuenciaRespiratoria) ? `${int.frecuenciaCardiaca || 'null'} lpm / ${int.frecuenciaRespiratoria || 'null'} rpm` : 'null'}
+                          </span></p>
+                          <p className="text-gray-500 font-semibold uppercase">Saturación SpO2: <span className="font-bold text-gray-800">{int.saturacionOxigeno ? `${int.saturacionOxigeno}%` : 'null'}</span></p>
+                          
+                          {/* Datos pediátricos (Perímetros cefálico y abdominal) */}
+                          {(() => {
+                            const ageVal = calculateAge(int.fechaNacimiento);
+                            if (ageVal !== '-' && ageVal <= 5) {
+                              return (
+                                <>
+                                  <p className="text-gray-500 font-semibold uppercase">P. Cefálico: <span className="font-bold text-gray-800">{int.perimetroCefalico ? `${int.perimetroCefalico} cm` : 'null'}</span></p>
+                                  <p className="text-gray-500 font-semibold uppercase">P. Abdominal: <span className="font-bold text-gray-800">{int.perimetroAbdominal ? `${int.perimetroAbdominal} cm` : 'null'}</span></p>
+                                </>
+                              );
+                            }
+                            return null;
+                          })()}
+
+                          <p className="text-gray-500 font-semibold uppercase">Deporte / P&M / Vacunas: <span className="font-bold text-gray-800 text-black">
+                            {`${int.practicaDeportiva ? 'Sí' : 'No'} / ${int.esquemaAtenciones ? 'Sí' : 'No'} / ${int.esquemaVacunacion ? 'Sí' : 'No'}`}
+                          </span></p>
+
+                          {/* Indicadores pediátricos OMS / Percentiles Z-Score */}
+                          {(() => {
+                            const ageVal = calculateAge(int.fechaNacimiento);
+                            if (ageVal === '-' || ageVal >= 19 || !int.peso || !int.talla) return null;
+                            const imcVal = int.peso / Math.pow(int.talla / 100, 2);
+                            let medianImc = 15.2;
+                            if (ageVal < 5) medianImc = 16.0 - (ageVal - 2) * 0.27;
+                            else medianImc = 15.2 + (ageVal - 5) * 0.485;
+                            const sd = 1.8;
+                            const zScore = (imcVal - medianImc) / sd;
+                            
+                            let zScoreEval = 'Normal';
+                            if (ageVal < 5) {
+                              if (zScore < -2) zScoreEval = 'Delgadez [Z < -2]';
+                              else if (zScore > 3) zScoreEval = 'Obesidad [Z > +3]';
+                              else if (zScore > 2) zScoreEval = 'Sobrepeso [Z > +2]';
+                              else if (zScore > 1) zScoreEval = 'Riesgo sobrepeso [Z > +1]';
+                              else zScoreEval = 'Adecuado (Eutrófico)';
+                            } else {
+                              if (zScore < -2) zScoreEval = 'Delgadez [Z < -2]';
+                              else if (zScore > 2) zScoreEval = 'Obesidad [Z > +2]';
+                              else if (zScore > 1) zScoreEval = 'Sobrepeso [Z > +1]';
+                              else zScoreEval = 'Adecuado (Eutrófico)';
+                            }
+                            return (
+                              <div className="mt-2 p-1.5 bg-gray-50 border border-gray-200 rounded text-[9px]">
+                                <p className="font-bold text-gray-700 uppercase mb-0.5">Indicadores OMS Z-Score</p>
+                                <div className="grid grid-cols-2 gap-1 text-[8px] leading-tight">
+                                  {ageVal < 10 && <p className="text-gray-500 font-medium">P/E: <span className="font-bold text-green-700">Normal (aprox)</span></p>}
+                                  <p className="text-gray-500 font-medium">T/E: <span className="font-bold text-green-700">Adecuada</span></p>
+                                  {ageVal < 5 && <p className="text-gray-500 font-medium">P/T: <span className="font-bold text-green-700">Eutrófico</span></p>}
+                                  <p className="text-gray-500 font-medium col-span-2">IMC/E: <span className="font-bold text-emerald-700">{zScoreEval}</span></p>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
+                      {/* Exposición a Metales Pesados */}
+                      <div>
+                        <p className="font-bold text-[#081e69] uppercase tracking-wider text-[10px] mb-2">Exposición a Metales Pesados</p>
+                        {int.riesgoMetalesPesados && int.riesgoMetalesPesados.aplicaExposicion ? (
+                          <div className="space-y-1 text-[10px]">
+                            <div className="flex items-center gap-1.5 text-gray-500 font-semibold uppercase">
+                              Nivel de Riesgo: 
+                              {(() => {
+                                const calculated = getMetalRiskScoreText(int.riesgoMetalesPesados);
+                                let colorCls = "bg-green-100 text-green-700 border-green-200";
+                                if (calculated.value === 'ALTO') colorCls = "bg-red-100 text-red-700 border-red-200";
+                                else if (calculated.value === 'MEDIO') colorCls = "bg-orange-100 text-orange-700 border-orange-200";
+                                return (
+                                  <span className={`px-1.5 py-0.5 rounded font-black text-[9px] border uppercase ${colorCls}`}>
+                                    {calculated.label}
+                                  </span>
+                                );
+                              })()}
+                            </div>
+                            <p className="text-gray-500 font-semibold uppercase">Ocupación expuesta: <span className="font-bold text-gray-800">{getLabel(OCUPACION, int.riesgoMetalesPesados.ocupacion).replace(/_/g, ' ')} {getOcupacionTiempoLabel(int.riesgoMetalesPesados.ocupacionTiempo)}</span></p>
+                            <p className="text-gray-500 font-semibold uppercase">Continúa / Elementos de proteccion: <span className="font-bold text-gray-800">{int.riesgoMetalesPesados.continuaExpuesto || 'null'} / {int.riesgoMetalesPesados.utilizaEPP || 'null'}</span></p>
+                            <p className="text-gray-500 font-semibold uppercase">Exp. Ambiental: <span className="font-bold text-gray-800">{String(int.riesgoMetalesPesados.ambiental).replace(/_/g, ' ')} {getAmbientalTiempoLabel(int.riesgoMetalesPesados.ambientalTiempo)}</span></p>
+                            <p className="text-gray-500 font-semibold uppercase">Consumo Pescado: <span className="font-bold text-gray-800">{getPescadoLabel(int.riesgoMetalesPesados.pescado)}</span></p>
+                            <p className="text-gray-500 font-semibold uppercase">Amalgamas: <span className="font-bold text-gray-800">{getAmalgamasLabel(int.riesgoMetalesPesados.amalgamas)}</span></p>
+                            <p className="text-gray-500 font-semibold uppercase">Síntomas: <span className="font-bold text-gray-800">
+                              {[...(int.riesgoMetalesPesados.sintomasNeu || []), ...(int.riesgoMetalesPesados.sintomasDig || []), ...(int.riesgoMetalesPesados.sintomasRen || []), ...(int.riesgoMetalesPesados.sintomasOtr || [])]
+                                .map(s => String(s).replace(/_/g, ' ').toLowerCase())
+                                .join(', ') || 'Ninguno'}
+                            </span></p>
+                            <p className="text-gray-500 font-semibold uppercase">Pruebas / Result: <span className="font-bold text-gray-800">{int.riesgoMetalesPesados.antecedentePrueba || 'null'} / {int.riesgoMetalesPesados.resultadoPrueba || 'null'}</span></p>
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-gray-400 font-semibold uppercase italic">Integrante sin registros de exposición a metales pesados</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Intervenciones y Remisiones */}
+                    <div className="grid grid-cols-2 gap-x-8 mt-4 pt-3 border-t border-dashed border-gray-200">
+                      <div>
+                        <p className="font-bold text-[#081e69] uppercase tracking-wider text-[10px] mb-2">Intervenciones Pendientes (P&M)</p>
+                        <div className="space-y-1 text-[10px]">
+                          <p className="text-gray-500 font-semibold uppercase">Acciones / Chequeos: <span className="font-bold text-gray-800 text-black">
+                            {getLabels(INTERVENCIONES_PENDIENTES, int.intervencionesPendientes)}
+                          </span></p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="font-bold text-[#081e69] uppercase tracking-wider text-[10px] mb-2">Enfermedad Aguda & Remisiones</p>
+                        <div className="space-y-1 text-[10px]">
+                          <p className="text-gray-500 font-semibold uppercase">Enfermedad Aguda (último mes): <span className="font-bold text-gray-800 text-black">
+                            {int.enfermedadAguda ? `SÍ ${int.recibeAtencionMedica ? '(Recibe atención médica)' : '(No recibe atención médica)'}` : 'NO'}
+                          </span></p>
+                          <p className="text-gray-500 font-semibold uppercase">Remisiones recomendadas: <span className="font-bold text-gray-800 text-black">
+                            {getLabels(REMISIONES_SISTEMA, int.remisiones)}
+                          </span></p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Atenciones del integrante */}
+                    {int.atenciones && int.atenciones.length > 0 && (
+                      <div className="mt-4 pt-3 border-t border-dashed border-gray-200 bg-gray-50/50 rounded p-3">
+                         <div className="flex items-center gap-2 mb-2">
+                           <h4 className="font-bold text-[10px] uppercase tracking-wider text-[#081e69]">Historial de Atenciones Personal</h4>
+                           <span className="bg-blue-100 text-blue-800 text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase">Total: {int.atenciones.length}</span>
+                         </div>
+                         <table className="w-full text-left text-[10px] border-collapse bg-white border border-gray-200">
+                           <thead>
+                             <tr className="bg-gray-100 text-gray-600">
+                               <th className="border-b border-gray-200 py-1 px-2 font-bold uppercase text-[8px]">Fecha / Programa</th>
+                               <th className="border-b border-gray-200 py-1 px-2 font-bold uppercase text-[8px]">Profesional</th>
+                               <th className="border-b border-gray-200 py-1 px-2 font-bold uppercase text-[8px]">Motivo / Nota</th>
+                             </tr>
+                           </thead>
+                           <tbody>
+                             {int.atenciones
+                               .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                               .map((at: any) => (
+                               <tr key={at.id}>
+                                 <td className="py-1 px-2 border-b border-gray-100 align-top">
+                                   <div className="font-bold">{new Date(at.createdAt).toLocaleDateString('es-CO')}</div>
+                                   <div className="text-gray-500 font-medium text-[8px] uppercase">{at.programa?.nombre}</div>
+                                 </td>
+                                 <td className="py-1 px-2 border-b border-gray-100 align-top font-semibold text-gray-700">
+                                   {at.profesional?.nombre} {at.profesional?.apellidos}
+                                 </td>
+                                 <td className="py-1 px-2 border-b border-gray-100 align-top italic text-gray-600">
+                                   &quot;{at.motivo || at.nota || 'Consulta registrada'}&quot;
+                                 </td>
+                                </tr>
+                             ))}
+                           </tbody>
+                         </table>
+                      </div>
+                    )}
+                  </div>
+                )
+              })
+            ) : (
+              <p className="italic text-gray-500 text-center py-4 border border-dashed border-gray-300">No hay integrantes registrados en esta visita.</p>
+            )}
+          </div>
+
+          {/* PAGINA FINAL: Autorizaciones, Firmas y Seguimientos */}
+          <div 
+            className="mt-8 pt-6 border-t-2 border-black"
+            style={!esImpar ? { pageBreakBefore: 'always', paddingTop: '1.1cm' } : {}}
+          >
+            {/* AUTORIZACIÓN Y FIRMA (SECCIÓN 11) */}
+            {ficha.consentimiento && (
+              <div className="border border-gray-300 rounded-xl p-4 bg-gray-50/50 print:break-inside-avoid mb-8">
+                <h3 className="font-bold text-[#081e69] uppercase text-xs tracking-wider border-b pb-1.5 mb-3 border-gray-200">
+                  11. Autorización de Datos y Firma Electrónica
+                </h3>
+                <div className="grid grid-cols-2 gap-8 text-xs">
+                  <div className="space-y-1.5">
+                    <p><strong className="text-gray-500 uppercase text-[9px]">Estado de Consentimiento:</strong></p>
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-green-100 text-green-800 font-bold border border-green-200 text-[10px]">
+                      ✓ AUTORIZADO (Ley 1581 de 2012)
+                    </div>
+                    <p className="text-gray-700 leading-snug text-[11px] mt-2">
+                      El titular autorizó de manera libre, previa, expresa e informada el tratamiento de sus datos personales y de salud para fines asistenciales, epidemiológicos y de seguimiento en salud.
+                    </p>
+                    <div className="text-[9px] text-gray-400 mt-2 space-y-0.5 font-mono">
+                      <p>Fecha Consentimiento: {new Date((ficha.consentimiento as any).fecha).toLocaleString('es-CO')}</p>
+                      <p>IP Registro: {(ficha.consentimiento as any).ip || 'Local'} · Versión: {(ficha.consentimiento as any).version_autorizacion || '1.0'}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col items-center justify-center border border-gray-200 rounded-lg p-3 bg-white">
+                    <p className="text-[9px] font-bold text-gray-400 uppercase mb-2">Firma del Titular / Informante</p>
+                    {(ficha.consentimiento as any).firma ? (
+                      <img 
+                        src={(ficha.consentimiento as any).firma} 
+                        alt="Firma electrónica" 
+                        className="max-h-[60px] object-contain" 
+                      />
+                    ) : (
+                      <div className="h-[60px] flex items-center justify-center text-gray-300 italic text-[10px]">Sin firma registrada</div>
+                    )}
+                    <div className="w-full border-t mt-3 pt-2 text-center text-[10px]">
+                      <p className="font-bold text-gray-800">{(ficha.consentimiento as any).nombre}</p>
+                      <p className="text-gray-500">C.C. {(ficha.consentimiento as any).identificacion}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* HISTORIAL DE SEGUIMIENTOS (SECCIÓN 12) */}
+            {ficha.seguimientos && ficha.seguimientos.length > 0 && (
+              <div className="mb-8">
+                <h2 className={headerCls}>12. Historial de Seguimientos Familiares</h2>
+                <div className="space-y-4">
+                  {ficha.seguimientos.map((seg: any) => (
+                    <div key={seg.id} className="border-b border-gray-200 pb-3 last:border-0 print:break-inside-avoid">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-bold bg-gray-200 text-gray-800 text-[10px] px-1.5 py-0.5 rounded uppercase">
+                          Seguimiento N° {seg.consecutivo}
+                        </span>
+                        <span className="font-bold text-xs text-gray-800">
+                          {new Date(seg.createdAt || seg.fecha).toLocaleDateString('es-CO')}
+                        </span>
+                        <span className="text-[9px] font-black uppercase text-gray-500">
+                          - Resp: {seg.responsable?.nombre} {seg.responsable?.apellidos}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-700 italic">
+                        &quot;{seg.observacion}&quot;
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
           </div>
-
-          {integranteChunks.length > 0 ? (
-            integranteChunks.map((chunk, chunkIdx) => (
-              <div key={chunkIdx} className={chunkIdx < integranteChunks.length - 1 ? sectionCls : "mb-8 print:mb-0"} style={chunkIdx < integranteChunks.length - 1 ? { pageBreakAfter: 'always' } : {}}>
-                {chunkIdx === 0 && <h2 className={headerCls}>10. Censo e Información de Integrantes</h2>}
-                {chunk.map((int: any, intIdx: number) => {
-                  const globalIdx = chunkIdx * 3 + intIdx + 1;
-                  return (
-                    <div key={int.id || intIdx} className="mb-8 print:last:mb-0 border-b-2 border-dashed border-gray-400 pb-4 last:border-0 page-break-inside-avoid">
-                      <div className="flex items-center gap-2 mb-3">
-                         <div className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center font-bold text-sm">#{globalIdx}</div>
-                         <h3 className="font-black text-base uppercase">
-                           {int.nombres ? `${int.nombres} ${int.apellidos}` : `${int.primerNombre || ''} ${int.segundoNombre || ''} ${int.primerApellido || ''} ${int.segundoApellido || ''}`.trim()}
-                         </h3>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-x-8">
-                        <table className="w-full text-left text-sm border-collapse">
-                          <tbody>
-                            <tr><th className="font-bold py-1 w-2/5 border-b border-gray-100">Documento:</th><td className="py-1 border-b border-gray-100 uppercase">{int.tipoDoc} {int.documento || int.numDoc}</td></tr>
-                            <tr><th className="font-bold py-1 border-b border-gray-100">Nacimiento:</th><td className="py-1 border-b border-gray-100">{int.fechaNacimiento} ({calculateAge(int.fechaNacimiento)} años)</td></tr>
-                            <tr><th className="font-bold py-1 border-b border-gray-100">Género:</th><td className="py-1 border-b border-gray-100 uppercase">{int.sexo}</td></tr>
-                            <tr><th className="font-bold py-1 border-b border-gray-100">Parentesco:</th><td className="py-1 border-b border-gray-100 uppercase">{getLabel(PARENTESCO, int.parentesco)}</td></tr>
-                            <tr><th className="font-bold py-1 border-b border-gray-100">Régimen / EAPB:</th><td className="py-1 border-b border-gray-100 uppercase">{getLabel(REGIMEN_SALUD, int.regimen)} / {int.eapb || '-'}</td></tr>
-                            <tr><th className="font-bold py-1 border-b border-gray-100">Ocupación:</th><td className="py-1 border-b border-gray-100 uppercase">{getLabel(OCUPACION, int.ocupacion)}</td></tr>
-                          </tbody>
-                        </table>
-
-                        <table className="w-full text-left text-sm border-collapse">
-                          <tbody>
-                            <tr><th className="font-bold py-1 w-2/5 border-b border-gray-100">Peso / Talla:</th><td className="py-1 border-b border-gray-100">{int.peso ? `${int.peso} kg` : '-'} / {int.talla ? `${int.talla} cm` : '-'}</td></tr>
-                            <tr><th className="font-bold py-1 border-b border-gray-100">P. Braquial:</th><td className="py-1 border-b border-gray-100">{int.perimetroBraquial ? `${int.perimetroBraquial} cm` : '-'}</td></tr>
-                            <tr><th className="font-bold py-1 border-b border-gray-100">Diag. Nutricional:</th><td className="py-1 border-b border-gray-100">{getLabel(DIAGNOSTICO_NUTRICIONAL, int.diagNutricional)}</td></tr>
-                            <tr><th className="font-bold py-1 border-b border-gray-100">Gestante:</th><td className="py-1 border-b border-gray-100 font-bold">{int.gestante}{int.gestante === 'SI' && int.mesesGestacion ? ` (${int.mesesGestacion} meses)` : ''}</td></tr>
-                            <tr><th className="font-bold py-1 border-b border-gray-100">Lactancia:</th><td className="py-1 border-b border-gray-100">{int.lactanciaMaterna ? `Sí (${int.lactanciaMeses || 0} meses)` : 'No'}</td></tr>
-                            <tr><th className="font-bold py-1 border-b border-gray-100">Vulnerabilidades:</th><td className="py-1 border-b border-gray-100">{getLabels(VULNERABILIDADES, int.vulnerabilidades)}</td></tr>
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* HISTORIAL DE ATENCIONES IMPRESO */}
-                      {int.atenciones && int.atenciones.length > 0 && (
-                        <div className="mt-5 pt-4 border-t-2 border-gray-200 print:break-inside-avoid bg-gray-50/50 rounded-lg p-4">
-                           <div className="flex items-center gap-2 mb-3">
-                             <h4 className="font-black text-sm uppercase tracking-widest text-[#081e69]">Historial de Atenciones Personal</h4>
-                             <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Total: {int.atenciones.length} atenciones</span>
-                           </div>
-                           <table className="w-full text-left text-xs border-collapse bg-white border border-gray-200 rounded overflow-hidden">
-                             <thead>
-                               <tr className="bg-gray-100 text-gray-600">
-                                 <th className="border-b border-gray-200 py-2 px-3 font-bold uppercase text-[10px] tracking-wider">Fecha / Programa</th>
-                                 <th className="border-b border-gray-200 py-2 px-3 font-bold uppercase text-[10px] tracking-wider">Profesional</th>
-                                 <th className="border-b border-gray-200 py-2 px-3 font-bold uppercase text-[10px] tracking-wider">Nota Clínica / Motivo</th>
-                               </tr>
-                             </thead>
-                             <tbody>
-                               {int.atenciones
-                                 .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                                 .map((at: any) => (
-                                 <tr key={at.id} className="hover:bg-gray-50">
-                                   <td className="py-2 px-3 border-b border-gray-100 align-top">
-                                     <div className="font-bold text-gray-900">{new Date(at.createdAt).toLocaleDateString('es-CO')}</div>
-                                     <div className="uppercase text-gray-500 font-medium text-[10px] mt-0.5">{at.programa?.nombre}</div>
-                                   </td>
-                                   <td className="py-2 px-3 border-b border-gray-100 align-top font-semibold text-gray-800">
-                                     {at.profesional?.nombre} {at.profesional?.apellidos}
-                                   </td>
-                                   <td className="py-2 px-3 border-b border-gray-100 align-top italic text-gray-700">
-                                     &quot;{at.motivo || at.nota || 'Consulta registrada'}&quot;
-                                   </td>
-                                 </tr>
-                               ))}
-                             </tbody>
-                           </table>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ))
-          ) : (
-            <div className={sectionCls}>
-              <h2 className={headerCls}>10. Censo e Información de Integrantes</h2>
-              <p className="italic text-gray-500 text-center py-4 border border-dashed border-gray-300">No hay integrantes registrados en esta visita.</p>
-            </div>
-          )}
-          {/* HISTORIAL DE SEGUIMIENTOS IMPRESO */}
-          {ficha.seguimientos && ficha.seguimientos.length > 0 && (
-            <div className={sectionCls}>
-              <h2 className={headerCls}>11. Historial de Seguimientos Familiares</h2>
-              <div className="space-y-4">
-                {ficha.seguimientos.map((seg: any) => (
-                  <div key={seg.id} className="border-b border-gray-300 pb-4 last:border-0 mb-4 last:mb-0 print:break-inside-avoid">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-bold bg-gray-200 text-gray-800 text-xs px-2 py-0.5 rounded uppercase">
-                        Seguimiento N° {seg.consecutivo}
-                      </span>
-                      <span className="font-bold text-sm text-gray-800">
-                        {new Date(seg.createdAt || seg.fecha).toLocaleDateString('es-CO')}
-                      </span>
-                      <span className="text-xs font-black uppercase text-gray-500">
-                        - Resp: {seg.responsable?.nombre} {seg.responsable?.apellidos} ({seg.responsable?.rol})
-                      </span>
-                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ml-auto ${seg.acuerdosCumplidos ? 'bg-gray-200 text-gray-800 border border-gray-400' : 'bg-white border border-gray-400 text-gray-600'}`}>
-                        {seg.acuerdosCumplidos ? 'Acuerdos Cumplidos' : 'Pendiente'}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-800 italic mb-2">
-                      &quot;{seg.observacion}&quot;
-                    </p>
-                    {seg.compromisos && seg.compromisos.length > 0 && (
-                      <div className="pl-4 mt-2 border-l-2 border-gray-200">
-                        <h4 className="text-xs font-bold uppercase text-gray-600 mb-1">Acuerdos / Logros generados:</h4>
-                        <ul className="space-y-1">
-                          {seg.compromisos.map((comp: any) => (
-                            <li key={comp.id} className="text-xs flex items-start gap-2">
-                              <span className="mt-0.5 font-black text-gray-500">•</span>
-                              <div>
-                                <span className="font-semibold">{comp.descripcion}</span>
-                                <span className={`ml-2 px-1.5 py-0.5 text-[9px] uppercase font-bold rounded ${comp.estado === 'CUMPLIDO' ? 'bg-green-100 text-green-800' : comp.estado === 'INCUMPLIDO' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                  {comp.estado}
-                                </span>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </>
       )}
-
-      {/* FOOTER LEGAL GLOBAL - AHORA DENTRO DEL CONTENIDO SIN GENERAR PAGINA NUEVA */}
-      <div className="mt-8 text-center text-xs text-gray-500 uppercase italic pt-3 font-sans print:break-inside-avoid" style={{ borderTop: '2px solid black' }}>
-        <p className="font-bold text-black" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>** DOCUMENTO DE CARÁCTER CONFIDENCIAL Y RESTRINGIDO **</p>
-        <p className="mt-0.5 normal-case text-[10px]">Los datos de salud e identificación familiar pertenecen al sistema departamental y su uso está regulado por la Ley de Protección de Datos Personales.</p>
-        <p className="mt-1 font-sans text-[9px]">{ficha.id}</p>
-      </div>
       </div>
     </div>
     </>

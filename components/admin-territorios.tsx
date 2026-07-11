@@ -5,6 +5,7 @@ import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 import { useAuth } from "@/lib/auth-context"
 import { Plus, Search, Pencil, Trash2, X, Power } from "lucide-react"
+import { COLOMBIA_DIVIPOLA } from "@/lib/colombia"
 
 interface Territorio {
   id: string
@@ -13,6 +14,8 @@ interface Territorio {
   descripcion?: string | null
   whatsappLink?: string | null
   activo?: boolean
+  departamento?: string | null
+  municipio?: string | null
 }
 
 export function AdminTerritorios() {
@@ -156,6 +159,7 @@ export function AdminTerritorios() {
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Código</th>
                 <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Nombre</th>
+                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Ubicación</th>
                 <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Descripción</th>
                 <th className="px-4 py-3 text-center font-semibold text-muted-foreground">Enlace WhatsApp</th>
                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground w-32">Acciones</th>
@@ -164,7 +168,7 @@ export function AdminTerritorios() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
                     No se encontraron equipos.
                   </td>
                 </tr>
@@ -173,6 +177,9 @@ export function AdminTerritorios() {
                   <tr key={t.id} className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${t.activo === false ? 'opacity-50 bg-muted/20' : ''}`}>
                     <td className="px-4 py-3 font-medium">{t.codigo}</td>
                     <td className="px-4 py-3">{t.nombre}</td>
+                    <td className="px-4 py-3 text-xs font-semibold">
+                      {t.departamento ? `${t.departamento.toUpperCase()} - ${t.municipio?.toUpperCase()}` : "—"}
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {t.descripcion || "—"}
                     </td>
@@ -240,7 +247,15 @@ function TerritorioFormModal({ territorio, onClose, onSave }: any) {
   const [nombre, setNombre] = useState(territorio?.nombre || "")
   const [descripcion, setDescripcion] = useState(territorio?.descripcion || "")
   const [whatsappLink, setWhatsappLink] = useState(territorio?.whatsappLink || "")
+  const [departamento, setDepartamento] = useState(territorio?.departamento || "")
+  const [municipio, setMunicipio] = useState(territorio?.municipio || "")
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const municipiosDisponibles = useMemo(() => {
+    if (!departamento) return []
+    const found = COLOMBIA_DIVIPOLA.find(x => x.departamento.toUpperCase() === departamento.toUpperCase())
+    return found ? found.municipios : []
+  }, [departamento])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -252,6 +267,8 @@ function TerritorioFormModal({ territorio, onClose, onSave }: any) {
       nombre,
       descripcion,
       whatsappLink,
+      departamento,
+      municipio
     })
     setIsSubmitting(false)
   }
@@ -300,6 +317,48 @@ function TerritorioFormModal({ territorio, onClose, onSave }: any) {
               onChange={(e) => setNombre(e.target.value.toUpperCase())}
               className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all uppercase"
             />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-semibold text-foreground">
+              Departamento
+            </label>
+            <input
+              type="text"
+              list="depts-list"
+              placeholder="Ej. CHOCO"
+              value={departamento}
+              onChange={(e) => {
+                setDepartamento(e.target.value.toUpperCase())
+                setMunicipio("")
+              }}
+              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all uppercase"
+            />
+            <datalist id="depts-list">
+              {COLOMBIA_DIVIPOLA.map((d) => (
+                <option key={d.departamento} value={d.departamento.toUpperCase()} />
+              ))}
+            </datalist>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-semibold text-foreground">
+              Municipio
+            </label>
+            <input
+              type="text"
+              list="munis-list"
+              placeholder="Ej. QUIBDO"
+              value={municipio}
+              onChange={(e) => setMunicipio(e.target.value.toUpperCase())}
+              disabled={!departamento}
+              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all uppercase disabled:opacity-50"
+            />
+            <datalist id="munis-list">
+              {municipiosDisponibles.map((m) => (
+                <option key={m} value={m.toUpperCase()} />
+              ))}
+            </datalist>
           </div>
 
           <div className="flex flex-col gap-1.5">

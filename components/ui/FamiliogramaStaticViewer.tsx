@@ -229,7 +229,7 @@ export default function FamiliogramaStaticViewer({ jsonString, isPrintView = fal
   }, [jsonString]);
 
   const memoNodeTypes = useMemo(() => ({ integrante: GenogramNode }), []);
-  const memoEdgeTypes = useMemo(() => ({ genogramEdge: GenogramEdge }), []);
+  const memoEdgeTypes = useMemo(() => ({ genogramEdge: GenogramEdge, spouse: GenogramEdge }), []);
 
   if (!nodes || nodes.length === 0) {
       return <div className="p-4 border border-dashed text-gray-500 text-center rounded-xl my-4">No hay datos válidos en el lienzo.</div>;

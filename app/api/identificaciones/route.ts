@@ -225,11 +225,10 @@ export async function POST(req: Request) {
       return arrayToProcess.map((val: any) => parseInt(String(val))).filter((n: number) => !isNaN(n))
     }
 
-    const fichaData = {
+    const fichaData: any = {
       estadoVisita: String(hogarData.estadoVisita || '1'),
       departamento: String(hogarData.departamento || 'CHOCO'),
       municipio: String(hogarData.municipio || 'PAIMADO'),
-      territorioId: territorio || null,
       uzpe: hogarData.uzpe || null,
       centroPoblado: hogarData.centroPoblado || null,
       descripcionUbicacion: hogarData.descripcionUbicacion || null,
@@ -249,7 +248,6 @@ export async function POST(req: Request) {
         }
         return new Date(dateStr);
       })(),
-      encuestadorId: authenticatedUserId || encuestadorId || userId || null,
       numEBS: hogarData.numEBS || null,
       equipoTerritorio: hogarData.equipoTerritorio || null,
       observacionesRechazo: hogarData.observacionesRechazo || null,
@@ -284,9 +282,12 @@ export async function POST(req: Request) {
       apgar: isEfectiva ? (hogarData.apgar ? parseInt(hogarData.apgar) : null) : null,
       apgarRespuestas: isEfectiva && Array.isArray(hogarData.apgarRespuestas) ? hogarData.apgarRespuestas : [],
       ecomapa: isEfectiva ? (hogarData.ecomapa ? parseInt(hogarData.ecomapa) : null) : null,
+      ecomapaRespuestas: isEfectiva && Array.isArray(hogarData.ecomapaRespuestas) ? hogarData.ecomapaRespuestas.map((v: any) => parseInt(String(v))).filter((n: number) => !isNaN(n)) : [],
       cuidadorPrincipal: isEfectiva ? (hogarData.cuidadorPrincipal === true || hogarData.cuidadorPrincipal === 'true') : false,
       zarit: isEfectiva ? (hogarData.zarit ? parseInt(hogarData.zarit) : null) : null,
+      zaritRespuestas: isEfectiva && Array.isArray(hogarData.zaritRespuestas) ? hogarData.zaritRespuestas.map((v: any) => parseInt(String(v))).filter((n: number) => !isNaN(n)) : [],
       vulnerabilidades: isEfectiva ? (Array.isArray(hogarData.vulnerabilidades) ? hogarData.vulnerabilidades : []) : [],
+      consentimiento: hogarData.consentimiento || null,
       familiogramaCodigo: isEfectiva && hogarData.familiogramaCodigo ? hogarData.familiogramaCodigo : (finalIntegrantes.length > 0 ? generateFamiliogramaAutoLayout(finalIntegrantes) : null),
       otrosJson: {
         fuenteAguaOtro: hogarData.fuenteAguaOtro || null,
@@ -297,6 +298,14 @@ export async function POST(req: Request) {
         animalesOtro: hogarData.animalesOtro || null,
         fuenteEnergiaOtro: hogarData.fuenteEnergiaOtro || null,
       }
+    }
+
+    if (territorio) {
+      fichaData.territorio = { connect: { id: String(territorio) } }
+    }
+    const encId = authenticatedUserId || encuestadorId || userId
+    if (encId) {
+      fichaData.encuestador = { connect: { id: encId } }
     }
 
     const result = await prisma.$transaction(async (tx: any) => {
@@ -341,6 +350,7 @@ export async function POST(req: Request) {
             frecuenciaRespiratoria: int.frecuenciaRespiratoria ? parseInt(int.frecuenciaRespiratoria) : null,
             saturacionOxigeno: int.saturacionOxigeno ? parseFloat(int.saturacionOxigeno) : null,
             perimetroCefalico: int.perimetroCefalico ? parseFloat(int.perimetroCefalico) : null,
+            perimetroAbdominal: int.perimetroAbdominal ? parseFloat(int.perimetroAbdominal) : null,
             tipoCancer: int.tipoCancer || null,
             riesgoMetalesPesados: int.riesgoMetalesPesados || null,
             practicaDeportiva: Boolean(int.practicaDeportiva),

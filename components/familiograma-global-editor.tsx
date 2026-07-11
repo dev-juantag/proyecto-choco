@@ -185,7 +185,7 @@ const GenogramEdge = ({
 
 export function FamiliogramaGlobalEditor({ fichaId, onClose }: { fichaId: string, onClose: () => void }) {
   const memoNodeTypes = useMemo(() => ({ integrante: GenogramNode }), []);
-  const memoEdgeTypes = useMemo(() => ({ genogramEdge: GenogramEdge }), []);
+  const memoEdgeTypes = useMemo(() => ({ genogramEdge: GenogramEdge, spouse: GenogramEdge }), []);
 
   const { data: ficha, error } = useSWR(`/api/identificaciones/${fichaId}`, fetcher);
   const { mutate } = useSWRConfig();

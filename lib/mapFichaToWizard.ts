@@ -59,9 +59,12 @@ export function mapFichaToWizardData(ficha: any, encuestadorDoc: string, perfilE
     apgar: cleanVal(ficha.apgar),
     apgarRespuestas: getIntList(ficha.apgarRespuestas),
     ecomapa: cleanVal(ficha.ecomapa),
+    ecomapaRespuestas: getIntList(ficha.ecomapaRespuestas),
     cuidadorPrincipal: Boolean(ficha.cuidadorPrincipal),
     zarit: cleanVal(ficha.zarit),
+    zaritRespuestas: getIntList(ficha.zaritRespuestas),
     vulnerabilidades: getIntList(ficha.vulnerabilidades),
+    consentimiento: ficha.consentimiento || null,
 
     integrantes: Array.isArray(ficha.pacientes)
       ? ficha.pacientes.map((p: any) => ({
@@ -104,6 +107,7 @@ export function mapFichaToWizardData(ficha: any, encuestadorDoc: string, perfilE
           frecuenciaRespiratoria: cleanVal(p.frecuenciaRespiratoria),
           saturacionOxigeno: cleanVal(p.saturacionOxigeno),
           perimetroCefalico: cleanVal(p.perimetroCefalico),
+          perimetroAbdominal: cleanVal(p.perimetroAbdominal),
           tipoCancer: cleanVal(p.tipoCancer),
           riesgoMetalesPesados: p.riesgoMetalesPesados || null,
           practicaDeportiva: Boolean(p.practicaDeportiva),

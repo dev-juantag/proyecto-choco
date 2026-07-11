@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { verifyToken } from "@/lib/verify-token"
 
 export async function PATCH(
   request: Request,
@@ -23,8 +24,12 @@ export async function PATCH(
       return NextResponse.json({ error: 'Ficha no encontrada' }, { status: 404 })
     }
 
-    // Regla de 30 días: solo validar al habilitar (puedeActualizarse = true)
-    if (body.puedeActualizarse === true) {
+    // Verificar token y rol del usuario
+    const auth = await verifyToken(request)
+    const isSuperAdmin = !auth.error && auth.decoded?.rol === 'SUPERADMIN'
+
+    // Regla de 30 días: solo validar al habilitar (puedeActualizarse = true) si no es Super Admin
+    if (body.puedeActualizarse === true && !isSuperAdmin) {
       const hoy = new Date()
       const ultimaActualizacion = new Date(fichaActual.updatedAt)
       const diffTime = Math.abs(hoy.getTime() - ultimaActualizacion.getTime())

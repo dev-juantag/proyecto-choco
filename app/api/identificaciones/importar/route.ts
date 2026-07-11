@@ -71,6 +71,11 @@ function getBoolean(val: string | undefined | null): boolean | null {
 
 
 
+function getJsonStringArray(val: string | undefined | null): string[] {
+  if (!val || val.trim() === '' || val.toLowerCase() === 'na' || val.toLowerCase() === 'null' || val === '""') return []
+  return val.split(',').map(v => v.trim()).filter(Boolean)
+}
+
 function normalizeEstadoVisita(val: string): string {
   const v = (val || '').trim().toLowerCase()
   const id = getLabelId(ESTADO_VISITA, v)
@@ -247,8 +252,22 @@ export async function POST(req: Request) {
             safeInt(get(h, 'apgar_P5', 'apgar_p5')) ?? 0,
           ].filter(x => x !== null),
           ecomapa: safeInt(get(h, 'ecomapa', 'ecomapa'), ECOMAPA_OPCIONES),
+          ecomapaRespuestas: [
+            safeInt(get(h, 'ecomapa_P1', 'ecomapa_p1')) ?? 0,
+            safeInt(get(h, 'ecomapa_P2', 'ecomapa_p2')) ?? 0,
+            safeInt(get(h, 'ecomapa_P3', 'ecomapa_p3')) ?? 0,
+            safeInt(get(h, 'ecomapa_P4', 'ecomapa_p4')) ?? 0,
+            safeInt(get(h, 'ecomapa_P5', 'ecomapa_p5')) ?? 0,
+          ].filter(x => x !== null),
           cuidadorPrincipal: getBoolean(get(h, 'cuidador', 'cuidadorprincipal')),
           zarit: safeInt(get(h, 'escalaZARIT', 'escalazarit', 'zarit'), ZARIT_OPCIONES),
+          zaritRespuestas: [
+            safeInt(get(h, 'zarit_P1', 'zarit_p1')) ?? 0,
+            safeInt(get(h, 'zarit_P2', 'zarit_p2')) ?? 0,
+            safeInt(get(h, 'zarit_P3', 'zarit_p3')) ?? 0,
+            safeInt(get(h, 'zarit_P4', 'zarit_p4')) ?? 0,
+            safeInt(get(h, 'zarit_P5', 'zarit_p5')) ?? 0,
+          ].filter(x => x !== null),
           vulnerabilidades: safeIntArray(get(h, 'Vulnerabilidad', 'vulnerabilidad'), VULNERABILIDADES),
           otrosJson: {
             fuenteAguaOtro: get(h, 'fuenteAguaOtro', 'fuenteaguaotro') || null,
@@ -311,6 +330,8 @@ export async function POST(req: Request) {
             peso: safeFloat(get(int, 'peso')),
             talla: safeFloat(get(int, 'talla')),
             perimetroBraquial: safeFloat(get(int, 'perimetroBraquial', 'perimetrobraquial')),
+            perimetroCefalico: safeFloat(get(int, 'perimetroCefalico', 'perimetrocefalico')),
+            perimetroAbdominal: safeFloat(get(int, 'perimetroAbdominal', 'perimetroabdominal')),
             eapb: get(int, 'eapb') || null,
             gestante: getBoolean(get(int, 'gestantes', 'gestante')) ? 'SI' : 'NO',
             mesesGestacion: safeFloat(get(int, 'mesesGestacion', 'mesesgestacion')),
@@ -335,11 +356,25 @@ export async function POST(req: Request) {
             antecedentes: safeIntArray(get(int, 'antecedentesCronicos', 'antecedentes'), ANTECEDENTES_CRONICOS),
             antecTransmisibles: safeIntArray(get(int, 'antecedentesTransmisibles', 'antectransmisibles'), ANTECEDENTES_TRANSMISIBLES),
             barrerasAccesoOtro: get(int, 'barrerasAccesoOtro', 'barrerasaccesootro') || null,
-            otrosJson: {
+             otrosJson: {
               grupoPoblacionalOtro: get(int, 'grupoPoblacionalOtro', 'grupopoblacionalotro') || null,
               discapacidadesOtro: get(int, 'discapacidadesOtro', 'discapacidadesotro') || null,
               antecedentesOtro: get(int, 'antecedentesOtro', 'antecedentesotro') || null,
               antecTransmisiblesOtro: get(int, 'antecTransmisiblesOtro', 'antectransmisiblesotro') || null,
+            },
+            riesgoMetalesPesados: {
+              ocupacion: getJsonStringArray(get(int, 'metalOcupacion', 'metalocupacion')),
+              ocupacionTiempo: get(int, 'metalOcupacionTiempo', 'metalocupaciontiempo') || null,
+              ambiental: getJsonStringArray(get(int, 'metalAmbiental', 'metalambiental')),
+              pescado: get(int, 'metalPescado', 'metalpescado') || null,
+              sintomasNeu: getJsonStringArray(get(int, 'metalSintomasNeu', 'metalsintomasneu')),
+              sintomasRen: getJsonStringArray(get(int, 'metalSintomasRen', 'metalsintomasren')),
+              sintomasDig: getJsonStringArray(get(int, 'metalSintomasDig', 'metalsintomasdig')),
+              sintomasOtr: getJsonStringArray(get(int, 'metalSintomasOtr', 'metalsintomasotr')),
+              antecedenteDiagnostico: get(int, 'metalAntecedenteDiag', 'metalantecedentediag') || null,
+              antecedentePruebas: get(int, 'metalAntecedentePrueba', 'metalantecedenteprueba') || null,
+              resultadoPruebas: get(int, 'metalResultadoPrueba', 'metalresultadoprueba') || null,
+              clasificacionRiesgo: get(int, 'metalClasificacionRiesgo', 'metalclasificacionriesgo') || 'BAJO',
             },
             fichaId: ficha.id,
           }

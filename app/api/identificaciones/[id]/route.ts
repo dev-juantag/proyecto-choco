@@ -214,9 +214,12 @@ export async function PUT(
       apgar: isEfectiva ? (hogarData.apgar ? parseInt(hogarData.apgar) : null) : null,
       apgarRespuestas: isEfectiva && Array.isArray(hogarData.apgarRespuestas) ? hogarData.apgarRespuestas : [],
       ecomapa: isEfectiva ? (hogarData.ecomapa ? parseInt(hogarData.ecomapa) : null) : null,
+      ecomapaRespuestas: isEfectiva && Array.isArray(hogarData.ecomapaRespuestas) ? hogarData.ecomapaRespuestas.map((v: any) => parseInt(String(v))).filter((n: number) => !isNaN(n)) : [],
       cuidadorPrincipal: isEfectiva ? (hogarData.cuidadorPrincipal === true || hogarData.cuidadorPrincipal === 'true') : false,
       zarit: isEfectiva ? (hogarData.zarit ? parseInt(hogarData.zarit) : null) : null,
+      zaritRespuestas: isEfectiva && Array.isArray(hogarData.zaritRespuestas) ? hogarData.zaritRespuestas.map((v: any) => parseInt(String(v))).filter((n: number) => !isNaN(n)) : [],
       vulnerabilidades: isEfectiva ? (Array.isArray(hogarData.vulnerabilidades) ? hogarData.vulnerabilidades : []) : [],
+      consentimiento: hogarData.consentimiento || null,
       otrosJson: {
         fuenteAguaOtro: hogarData.fuenteAguaOtro || null,
         dispExcretasOtro: hogarData.dispExcretasOtro || null,
@@ -232,8 +235,6 @@ export async function PUT(
     if (nuevoEncuestadorId) {
       fichaData.encuestador = { connect: { id: nuevoEncuestadorId } }
     }
-    if (hogarData.encuestadorNombreRaw) fichaData.encuestadorNombreRaw = hogarData.encuestadorNombreRaw
-    if (hogarData.numDocEncuestador) fichaData.encuestadorDocRaw = hogarData.numDocEncuestador
 
     if (territorio) fichaData.territorio = { connect: { id: String(territorio) } };
 
@@ -285,6 +286,7 @@ export async function PUT(
             frecuenciaRespiratoria: int.frecuenciaRespiratoria ? parseInt(int.frecuenciaRespiratoria) : null,
             saturacionOxigeno: int.saturacionOxigeno ? parseFloat(int.saturacionOxigeno) : null,
             perimetroCefalico: int.perimetroCefalico ? parseFloat(int.perimetroCefalico) : null,
+            perimetroAbdominal: int.perimetroAbdominal ? parseFloat(int.perimetroAbdominal) : null,
             tipoCancer: int.tipoCancer || null,
             riesgoMetalesPesados: int.riesgoMetalesPesados || null,
             practicaDeportiva: Boolean(int.practicaDeportiva),

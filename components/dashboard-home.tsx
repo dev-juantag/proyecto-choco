@@ -50,7 +50,8 @@ export function DashboardHome() {
   const userRol = user?.rol?.toLowerCase() || ""
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
-    setIsMounted(true);
+    const timer = setTimeout(() => setIsMounted(true), 150);
+    return () => clearTimeout(timer);
   }, []);
   // Helper para convertir fechas a fecha local consistente
   const getLocalDateString = (d: Date | string) => {
@@ -520,248 +521,211 @@ export function DashboardHome() {
         )}
       </div>
 
-      {/* KPI Cards */}
-      <div className={`grid gap-4 ${isAdmin ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-4"}`}>
-        {kpis.map((kpi) => (
-          <div
-            key={kpi.label}
-            className="flex items-center gap-4 rounded-xl border border-border bg-card p-5 shadow-sm"
-          >
-            <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${kpi.color}`}>
-              {kpi.icon}
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground leading-tight mb-1">{kpi.label}</p>
-              <p className="text-2xl font-bold text-foreground leading-none">{kpi.value}</p>
-            </div>
+      {/* Cards superiores */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Hogares */}
+        <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-500">
+            <Home className="h-5 w-5" />
           </div>
-        ))}
+          <div>
+            <p className="text-xs text-muted-foreground leading-tight mb-1">Hogares</p>
+            <p className="text-2xl font-black text-foreground leading-none">{idStats?.kpis?.totalFichas || 0}</p>
+          </div>
+        </div>
+
+        {/* Personas */}
+        <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-500">
+            <Users className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground leading-tight mb-1">Personas</p>
+            <p className="text-2xl font-black text-foreground leading-none">{idStats?.kpis?.totalPacientes || 0}</p>
+          </div>
+        </div>
+
+        {/* Atenciones */}
+        <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-500">
+            <ClipboardList className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground leading-tight mb-1">Atenciones</p>
+            <p className="text-2xl font-black text-foreground leading-none">{filteredAtenciones.length}</p>
+          </div>
+        </div>
+
+        {/* Cobertura */}
+        <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-500">
+            <TrendingUp className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground leading-tight mb-1">Cobertura %</p>
+            <p className="text-2xl font-black text-foreground leading-none">
+              {idStats?.atencionesKpis?.coberturaAtencion ? `${Number(idStats.atencion || idStats.atencionesKpis.coberturaAtencion).toFixed(1)}%` : "0.0%"}
+            </p>
+          </div>
+        </div>
       </div>
 
-      {idStats && (userRol === "auxiliar" || isAdmin || isEnfermeraJefe) && (
-        <>
-          <div className="flex items-center gap-2 mt-2 border-b border-border pb-2">
-            <HeartPulse className="h-6 w-6 text-destructive" />
-            <h2 className="text-xl font-bold text-foreground">
-              Vigilancia Epidemiológica y Demográfica {isEnfermeraJefe && `(Territorio ${userTerritory?.label || ''})`}
-            </h2>
+      {/* Alertas Section */}
+      <div className="bg-card/50 border border-border p-5 rounded-2xl shadow-sm">
+        <h2 className="text-base font-bold text-foreground mb-4 flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-amber-500" /> Alertas Epidemiológicas
+        </h2>
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+          {/* Gestantes */}
+          <div className="bg-card border border-border p-4 rounded-xl shadow-sm text-center flex flex-col justify-center items-center">
+            <Activity className="h-6 w-6 text-rose-500 mb-2" />
+            <p className="text-2xl font-bold text-foreground">{idStats?.kpis?.gestantes || 0}</p>
+            <p className="text-xs text-muted-foreground font-medium">Gestantes</p>
           </div>
-          
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="flex flex-col gap-1 rounded-xl border border-border bg-card p-5 shadow-sm text-center">
-              <Baby className="mx-auto h-8 w-8 text-chart-2 mb-2" />
-              <p className="text-3xl font-bold text-foreground">{idStats?.kpis?.menores10 || 0}</p>
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Niños &lt; 10 años</p>
-            </div>
-            <div className="flex flex-col gap-1 rounded-xl border border-border bg-card p-5 shadow-sm text-center">
-              <Activity className="mx-auto h-8 w-8 text-destructive mb-2" />
-              <p className="text-3xl font-bold text-foreground">{idStats?.kpis?.gestantes || 0}</p>
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Gestantes</p>
-            </div>
-            <div className="flex flex-col gap-1 rounded-xl border border-border bg-card p-5 shadow-sm text-center">
-              <AlertTriangle className="mx-auto h-8 w-8 text-orange-500 mb-2" />
-              <p className="text-3xl font-bold text-foreground">{idStats?.kpis?.signosDesnutricion || 0}</p>
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Desnutrición</p>
-            </div>
-            <div className="flex flex-col gap-1 rounded-xl border border-border bg-card p-5 shadow-sm text-center">
-              <Users className="mx-auto h-8 w-8 text-chart-4 mb-2" />
-              <p className="text-3xl font-bold text-foreground">{idStats?.kpis?.mayores60 || 0}</p>
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Vejez (60+)</p>
-            </div>
+          {/* Menores de 5 */}
+          <div className="bg-card border border-border p-4 rounded-xl shadow-sm text-center flex flex-col justify-center items-center">
+            <Baby className="h-6 w-6 text-teal-500 mb-2" />
+            <p className="text-2xl font-bold text-foreground">{idStats?.kpis?.menores5 || 0}</p>
+            <p className="text-xs text-muted-foreground font-medium">Menores de 5 años</p>
           </div>
-
-          {(isAdmin || isEnfermeraJefe) && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-sm transition-all hover:border-destructive/30">
-                <div className="flex items-center justify-between mb-2">
-                  <ShieldAlert className="h-5 w-5 text-destructive" />
-                  <span className="text-[10px] font-bold px-2 py-0.5 bg-destructive/10 text-destructive rounded-full">VULNERABILIDAD</span>
-                </div>
-                <p className="text-2xl font-bold text-foreground">{idStats?.kpis?.victimas || 0}</p>
-                <p className="text-xs text-muted-foreground font-medium">Víctimas del Conflicto</p>
-                <div className="absolute -bottom-2 -right-2 h-12 w-12 text-destructive/5 group-hover:text-destructive/10 transition-colors">
-                  <ShieldAlert className="h-full w-full" />
-                </div>
-              </div>
-
-              <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-sm transition-all hover:border-blue-500/30">
-                <div className="flex items-center justify-between mb-2">
-                  <Accessibility className="h-5 w-5 text-blue-500" />
-                  <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full">INCLUSIÓN</span>
-                </div>
-                <p className="text-2xl font-bold text-foreground">{idStats?.kpis?.conDiscapacidad || 0}</p>
-                <p className="text-xs text-muted-foreground font-medium">PcD (Discapacidad)</p>
-                <div className="absolute -bottom-2 -right-2 h-12 w-12 text-blue-500/5 group-hover:text-blue-500/10 transition-colors">
-                  <Accessibility className="h-full w-full" />
-                </div>
-              </div>
-
-              <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-sm transition-all hover:border-rose-500/30">
-                <div className="flex items-center justify-between mb-2">
-                  <HeartPulse className="h-5 w-5 text-rose-500" />
-                  <span className="text-[10px] font-bold px-2 py-0.5 bg-rose-100 text-rose-600 rounded-full">ALTA PRIORIDAD</span>
-                </div>
-                <p className="text-2xl font-bold text-foreground">{idStats?.kpis?.hogaresHuerfanas || 0}</p>
-                <p className="text-xs text-muted-foreground font-medium">Enf. Huérfana o Terminal</p>
-                <p className="text-[9px] text-muted-foreground italic mt-1">(Familias con casos)</p>
-              </div>
-
-              <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-sm transition-all hover:border-emerald-500/30">
-                <div className="flex items-center justify-between mb-2">
-                  <Heart className="h-5 w-5 text-emerald-500" />
-                  <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-600 rounded-full">PROTECCIÓN</span>
-                </div>
-                <p className="text-2xl font-bold text-emerald-600">
-                  {idStats?.kpis?.regimenSubsidiado || 0}
-                </p>
-                <p className="text-xs text-muted-foreground font-medium">Régimen Subsidiado</p>
-              </div>
-            </div>
-          )}
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Pirámide Poblacional */}
-            <div className="rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col items-center">
-              <div className="w-full mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <Layers className="h-5 w-5 text-primary" />
-                  <h2 className="text-lg font-semibold text-foreground">
-                    Cursos de Vida y Género
-                  </h2>
-                </div>
-                <div className="flex flex-wrap items-center gap-3 text-[11px] bg-muted/10 p-2 rounded-lg sm:bg-transparent sm:p-0">
-                   <div className="flex items-center gap-1.5">
-                     <div className="w-2.5 h-2.5 rounded-full bg-[#081e69]"></div>
-                     <span className="font-bold">HOMBRES: {idStats?.kpis?.totalHombres || 0}</span>
-                   </div>
-                   <div className="flex items-center gap-1.5">
-                     <div className="w-2.5 h-2.5 rounded-full bg-[#eb3b5a]"></div>
-                     <span className="font-bold">MUJERES: {idStats?.kpis?.totalMujeres || 0}</span>
-                   </div>
-                </div>
-              </div>
-              <div className="w-full h-[320px]">
-                {(idStats?.piramide?.length || 0) > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-                    <BarChart layout="vertical" data={idStats?.piramide || []} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="oklch(0.9 0.02 285)" />
-                      <XAxis type="number" hide />
-                      <YAxis dataKey="label" type="category" width={100} tick={{ fontSize: 9, fontWeight: 'bold', fill: "var(--foreground)" }} />
-                      <Tooltip
-                        cursor={{ fill: 'transparent' }}
-                        contentStyle={{ backgroundColor: "var(--card)", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }}
-                        formatter={((value: any, name: any) => [Math.abs(value), name === "mujeres" ? "Mujeres" : "Hombres"]) as any}
-                      />
-                      <Bar dataKey="hombres" name="Hombres" fill="#081e69" stackId="a" radius={[0, 4, 4, 0]} barSize={24} />
-                      <Bar dataKey="mujeres" name="Mujeres" fill="#eb3b5a" stackId="a" radius={[4, 0, 0, 4]} barSize={24} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-muted-foreground mt-20 text-center text-sm">Sin datos para la pirámide poblacional.</p>
-                )}
-              </div>
-            </div>
-
-            {/* Clasificación Socioeconómica y Estilo de Vida */}
-            <div className="rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col">
-              <div className="w-full mb-4 flex items-center gap-2">
-                <Briefcase className="h-5 w-5 text-indigo-500" />
-                <h2 className="text-lg font-semibold text-foreground">
-                  Entorno y Vulnerabilidad
-                </h2>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 flex-1">
-                <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                  <p className="text-[10px] text-muted-foreground uppercase font-bold mb-2">Estratos predominantes</p>
-                  <div className="space-y-2">
-                    {idStats?.estratos?.slice(0, 3).map((e: any) => (
-                      <div key={e.name} className="flex items-center justify-between">
-                         <span className="text-sm font-medium">Estrato {e.name}</span>
-                         <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full font-bold">{e.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-lg bg-emerald-50/50 border border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900">
-                  <p className="text-[10px] text-emerald-700 dark:text-emerald-500 uppercase font-bold mb-2">Hábitos Saludables</p>
-                  <div className="flex flex-col items-center justify-center pt-2">
-                    <Heart className="h-8 w-8 text-emerald-500 animate-pulse mb-1" />
-                    <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">{idStats?.kpis?.habitosSaludables || 0}</p>
-                    <p className="text-[10px] text-emerald-600 text-center">Realizan actividad física</p>
-                  </div>
-                </div>
-
-                <div className="col-span-2 p-4 rounded-lg bg-orange-50/50 border border-orange-100 dark:bg-orange-950/20 dark:border-orange-900">
-                   <p className="text-[10px] text-orange-700 dark:text-orange-500 uppercase font-bold mb-2">Situaciones de Vulnerabilidad</p>
-                   <div className="flex flex-wrap gap-2">
-                     {idStats?.vulnerabilidades?.filter((v: any) => !v.name.toLowerCase().includes('ningun')).slice(0, 4).map((v: any) => (
-                       <div key={v.name} className="flex items-center gap-2 bg-white/80 dark:bg-black/20 px-3 py-1.5 rounded-md border border-orange-200 dark:border-orange-900 shadow-sm">
-                          <span className="text-[11px] font-medium leading-tight max-w-[120px]">{v.name}</span>
-                          <span className="text-xs font-bold text-orange-600">{v.value}</span>
-                       </div>
-                     ))}
-                   </div>
-                </div>
-              </div>
-            </div>
+          {/* Adultos mayores */}
+          <div className="bg-card border border-border p-4 rounded-xl shadow-sm text-center flex flex-col justify-center items-center">
+            <Users className="h-6 w-6 text-orange-500 mb-2" />
+            <p className="text-2xl font-bold text-foreground">{idStats?.kpis?.mayores60 || 0}</p>
+            <p className="text-xs text-muted-foreground font-medium">Adultos mayores</p>
           </div>
-        </>
-      )}
+          {/* Enfermedad aguda */}
+          <div className="bg-card border border-border p-4 rounded-xl shadow-sm text-center flex flex-col justify-center items-center">
+            <HeartPulse className="h-6 w-6 text-red-500 mb-2" />
+            <p className="text-2xl font-bold text-foreground">{idStats?.kpis?.enfermedadAguda || 0}</p>
+            <p className="text-xs text-muted-foreground font-medium">Enfermedad aguda</p>
+          </div>
+          {/* Desnutrición */}
+          <div className="bg-card border border-border p-4 rounded-xl shadow-sm text-center flex flex-col justify-center items-center">
+            <Activity className="h-6 w-6 text-emerald-500 mb-2" />
+            <p className="text-2xl font-bold text-foreground">{idStats?.kpis?.signosDesnutricion || 0}</p>
+            <p className="text-xs text-muted-foreground font-medium">Desnutrición</p>
+          </div>
+        </div>
+      </div>
 
+      {/* Riesgos Section */}
+      <div className="bg-card/50 border border-border p-5 rounded-2xl shadow-sm">
+        <h2 className="text-base font-bold text-foreground mb-4 flex items-center gap-2">
+          <ShieldAlert className="h-5 w-5 text-red-600" /> Factores de Riesgo y Poblaciones
+        </h2>
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+          {/* Discapacidad */}
+          <div className="bg-card border border-border p-4 rounded-xl shadow-sm text-center flex flex-col justify-center items-center">
+            <Accessibility className="h-6 w-6 text-blue-500 mb-2" />
+            <p className="text-2xl font-bold text-foreground">{idStats?.kpis?.conDiscapacidad || 0}</p>
+            <p className="text-xs text-muted-foreground font-medium">Discapacidad</p>
+          </div>
+          {/* Víctimas */}
+          <div className="bg-card border border-border p-4 rounded-xl shadow-sm text-center flex flex-col justify-center items-center">
+            <ShieldAlert className="h-6 w-6 text-purple-500 mb-2" />
+            <p className="text-2xl font-bold text-foreground">{idStats?.kpis?.victimas || 0}</p>
+            <p className="text-xs text-muted-foreground font-medium">Víctimas</p>
+          </div>
+          {/* APGAR alterado */}
+          <div className="bg-card border border-border p-4 rounded-xl shadow-sm text-center flex flex-col justify-center items-center">
+            <Home className="h-6 w-6 text-rose-500 mb-2" />
+            <p className="text-2xl font-bold text-foreground">{idStats?.kpis?.apgarDisfuncion || 0}</p>
+            <p className="text-xs text-muted-foreground font-medium">APGAR alterado</p>
+          </div>
+          {/* Metales pesados */}
+          <div className="bg-card border border-border p-4 rounded-xl shadow-sm text-center flex flex-col justify-center items-center">
+            <Activity className="h-6 w-6 text-amber-500 mb-2" />
+            <p className="text-2xl font-bold text-foreground">{idStats?.kpis?.riesgoMetales || 0}</p>
+            <p className="text-xs text-muted-foreground font-medium">Metales pesados</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Gráficas Section */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Chart 1: Auxiliar o Admin/Profs */}
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">
-              {isFacturador 
-                ? "Distribución por Estado de Facturación" 
-                : isAdmin
-                  ? "Atenciones por Programa Global"
-                  : userRol === "auxiliar" || isEnfermeraJefe 
-                    ? "Estado de Identificaciones del Territorio" 
-                    : "Mi Productividad Semanal (Atenciones)"}
-            </h2>
-          </div>
-          {(isFacturador 
-            ? chartDataFacturacion 
-            : (isAdmin 
-                ? chartDataAtenciones 
-                : (userRol === "auxiliar" || isEnfermeraJefe 
-                    ? chartDataIdAuxiliar 
-                    : chartDataMisAtencionesDiarias))).length === 0 ? (
-            <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
-              No hay datos para mostrar.
+        {/* Curso de vida */}
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col items-center">
+          <div className="w-full mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Layers className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold text-foreground">
+                Curso de vida
+              </h2>
             </div>
-          ) : isFacturador ? (
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+          </div>
+          <div className="w-full h-[320px]">
+            {(idStats?.piramide?.length || 0) > 0 ? (
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart layout="vertical" data={idStats?.piramide || []} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="oklch(0.9 0.02 285)" />
+                  <XAxis type="number" hide />
+                  <YAxis dataKey="label" type="category" width={100} tick={{ fontSize: 9, fontWeight: 'bold', fill: "var(--foreground)" }} />
+                  <Tooltip
+                    cursor={{ fill: 'transparent' }}
+                    contentStyle={{ backgroundColor: "var(--card)", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }}
+                    formatter={((value: any, name: any) => [Math.abs(value), String(name).toLowerCase() === "mujeres" ? "Mujeres" : "Hombres"]) as any}
+                  />
+                  <Bar dataKey="hombres" name="Hombres" fill="#081e69" stackId="a" radius={[0, 4, 4, 0]} barSize={24} />
+                  <Bar dataKey="mujeres" name="Mujeres" fill="#eb3b5a" stackId="a" radius={[4, 0, 0, 4]} barSize={24} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-muted-foreground mt-20 text-center text-sm">Sin datos para el curso de vida.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Sexo */}
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col items-center">
+          <div className="w-full mb-4 flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold text-foreground">Sexo</h2>
+          </div>
+          <div className="w-full h-[320px] flex items-center justify-center">
+            {idStats?.kpis?.totalPacientes ? (
+              <ResponsiveContainer width="100%" height={320}>
                 <PieChart>
                   <Pie
-                    data={chartDataFacturacion}
+                    data={[
+                      { name: "Hombres", value: idStats?.kpis?.totalHombres || 0 },
+                      { name: "Mujeres", value: idStats?.kpis?.totalMujeres || 0 }
+                    ]}
                     cx="50%"
-                    cy="45%"
+                    cy="50%"
                     innerRadius={60}
-                    outerRadius={80}
+                    outerRadius={100}
                     paddingAngle={5}
                     dataKey="value"
+                    label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
                   >
-                    {chartDataFacturacion.map((entry, index) => {
-                      const COLORS = ["#f59e0b", "#9333ea", "#ef4444", "#f97316", "#10b981"];
-                      return <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />;
-                    })}
+                    <Cell fill="#081e69" />
+                    <Cell fill="#eb3b5a" />
                   </Pie>
                   <Tooltip />
-                  <Legend verticalAlign="bottom" height={36}/>
+                  <Legend verticalAlign="bottom" height={36} />
                 </PieChart>
               </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-                <BarChart data={(isAdmin ? chartDataAtenciones : (userRol === "auxiliar" || isEnfermeraJefe ? chartDataIdAuxiliar : chartDataMisAtencionesDiarias)) as any[]} margin={{ top: 5, right: 10, left: -20, bottom: 40 }}>
+            ) : (
+              <p className="text-muted-foreground text-center text-sm">Sin datos de sexo.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Atenciones por programa */}
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col">
+          <div className="mb-4 flex items-center gap-2">
+            <ClipboardList className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold text-foreground">Atenciones por programa</h2>
+          </div>
+          <div className="w-full h-[320px]">
+            {chartDataAtenciones.length === 0 ? (
+              <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+                No hay atenciones registradas.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart data={chartDataAtenciones} margin={{ top: 5, right: 10, left: -20, bottom: 40 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.90 0.02 285)" />
                   <XAxis
                     dataKey="nombre"
@@ -772,250 +736,127 @@ export function DashboardHome() {
                     interval={0}
                   />
                   <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "oklch(1 0 0)",
-                      border: "1px solid oklch(0.90 0.02 285)",
-                      borderRadius: "8px",
-                      fontSize: "13px",
-                    }}
-                  />
-                  <Bar 
-                    dataKey={isAdmin ? "atenciones" : (userRol === "auxiliar" || isEnfermeraJefe ? "cantidad" : "atenciones")} 
-                    name={isAdmin ? "Atenciones" : (userRol === "auxiliar" || isEnfermeraJefe ? "Cantidad" : "Atenciones")} 
-                    fill={isAdmin ? "oklch(0.60 0.2 150)" : (userRol === "auxiliar" ? "oklch(0.50 0.18 285)" : "oklch(0.60 0.2 150)")} 
-                    radius={[4, 4, 0, 0]} 
-                  />
+                  <Tooltip contentStyle={{ backgroundColor: "var(--card)", borderRadius: "8px", border: "1px solid var(--border)" }} />
+                  <Bar dataKey="atenciones" name="Atenciones" fill="oklch(0.60 0.2 150)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* Chart 2 o Recientes dependiendo del rol */}
-        {isAdmin ? (
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            <div className="mb-4 flex items-center gap-2">
-              <Database className="h-5 w-5 text-chart-2" />
-              <h2 className="text-lg font-semibold text-foreground">Identificaciones por Territorio</h2>
-            </div>
+        {/* Identificaciones por equipo */}
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col">
+          <div className="mb-4 flex items-center gap-2">
+            <Database className="h-5 w-5 text-chart-2" />
+            <h2 className="text-lg font-semibold text-foreground">Identificaciones por equipo</h2>
+          </div>
+          <div className="w-full h-[320px]">
             {chartDataIdentificacionesRoles.length === 0 ? (
               <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
                 No hay identificaciones registradas.
               </div>
             ) : (
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-                  <BarChart data={chartDataIdentificacionesRoles} margin={{ top: 5, right: 10, left: -20, bottom: 40 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.90 0.02 285)" />
-                    <XAxis
-                      dataKey="nombre"
-                      tick={{ fontSize: 11 }}
-                      angle={-35}
-                      textAnchor="end"
-                      height={60}
-                      interval={0}
-                    />
-                    <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "oklch(1 0 0)",
-                        border: "1px solid oklch(0.90 0.02 285)",
-                        borderRadius: "8px",
-                        fontSize: "13px",
-                      }}
-                    />
-                    <Bar dataKey="identificaciones" name="Identificaciones" fill="oklch(0.65 0.18 100)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart data={chartDataIdentificacionesRoles} margin={{ top: 5, right: 10, left: -20, bottom: 40 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.90 0.02 285)" />
+                  <XAxis
+                    dataKey="nombre"
+                    tick={{ fontSize: 11 }}
+                    angle={-35}
+                    textAnchor="end"
+                    height={60}
+                    interval={0}
+                  />
+                  <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                  <Tooltip contentStyle={{ backgroundColor: "var(--card)", borderRadius: "8px", border: "1px solid var(--border)" }} />
+                  <Bar dataKey="identificaciones" name="Identificaciones" fill="oklch(0.50 0.18 285)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             )}
           </div>
-        ) : (
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            <div className="mb-4 flex items-center gap-2">
-              {isFacturador ? <Clock className="h-5 w-5 text-primary" /> : (userRol === "auxiliar" || isEnfermeraJefe ? <Database className="h-5 w-5 text-primary" /> : <ClipboardList className="h-5 w-5 text-primary" />)}
-              <h2 className="text-lg font-semibold text-foreground">
-                {isFacturador ? "Atenciones Pendientes por Facturar" : (userRol === "auxiliar" || isEnfermeraJefe
-                  ? "Últimas Identificaciones del Territorio"
-                  : `Atenciones recientes del programa`)}
-              </h2>
-            </div>
-            {(isFacturador ? recentPendingAtenciones : (userRol === "auxiliar" || isEnfermeraJefe ? recentIdentificaciones : recentAtenciones)).length === 0 ? (
-              <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
-                No hay {isFacturador ? "atenciones pendientes" : (userRol === "auxiliar" || isEnfermeraJefe ? "identificaciones" : "atenciones")} registradas.
-              </div>
+        </div>
+      </div>
+
+      {/* Gestión Section */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Ranking profesionales */}
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col">
+          <div className="mb-4 flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-warning fill-chart-4 text-chart-4" />
+            <h2 className="text-lg font-semibold text-foreground">Ranking profesionales</h2>
+          </div>
+          <div className="flex-1 overflow-y-auto max-h-[360px]">
+            {top10Profesionales.length === 0 ? (
+              <p className="text-muted-foreground text-sm text-center py-8">Sin registros</p>
             ) : (
-              <ul className="flex flex-col gap-3">
-                {(isFacturador ? recentPendingAtenciones : (userRol === "auxiliar" || isEnfermeraJefe ? recentIdentificaciones : recentAtenciones)).map((a: any) => (
-                  <li
-                    key={a.id}
-                    className="flex items-center gap-4 rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors"
-                  >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                      {((userRol === "auxiliar" || isEnfermeraJefe) ? (a.direccion || "A") : a.pacienteNombre)
-                        .split(" ")
-                        .map((w: string) => w[0])
-                        .join("")
-                        .slice(0, 2)
-                        .toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">
-                        {(userRol === "auxiliar" || isEnfermeraJefe) ? a.direccion : a.pacienteNombre}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {(userRol === "auxiliar" || isEnfermeraJefe)
-                          ? `Territorio: ${a.territorio} — ${getRelativeTime(a.fechaDiligenciamiento)}`
-                          : (isFacturador 
-                              ? `${getProgramaById(a.programaId)?.nombre || "Sin programa"} — ${getRelativeTime(a.createdAtISO, a.fecha)}`
-                              : `Por: ${a.profesionalNombre}`)
-                        }
-                      </p>
-                      {((userRol === "auxiliar" || isEnfermeraJefe) && a.encuestador) && (
-                        <p className="text-[11px] text-muted-foreground/80 mt-0.5">
-                          Por: <span className="font-medium text-foreground/80">{a.encuestador?.nombre} {a.encuestador?.apellidos}</span> - <span>C.C. {a.encuestador?.documento || 'No disp.'}</span>
-                        </p>
-                      )}
-                    </div>
+              <table className="w-full text-sm">
+                <tbody>
+                  {top10Profesionales.slice(0, 5).map((prof: any, index: number) => (
+                    <tr key={prof.id} className="border-b border-border last:border-0 hover:bg-muted/10">
+                      <td className="py-2.5 font-bold text-muted-foreground w-8">#{index + 1}</td>
+                      <td className="py-2.5">
+                        <p className="font-medium text-foreground truncate">{prof.nombre} {prof.apellidos}</p>
+                        <p className="text-[10px] text-muted-foreground">{prof.programaNombre}</p>
+                      </td>
+                      <td className="py-2.5 text-right font-bold text-primary">{prof.atencCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+
+        {/* Últimas atenciones */}
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col">
+          <div className="mb-4 flex items-center gap-2">
+            <ClipboardList className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold text-foreground">Últimas atenciones</h2>
+          </div>
+          <div className="flex-1 overflow-y-auto max-h-[360px]">
+            {recentAtenciones.length === 0 ? (
+              <p className="text-muted-foreground text-sm text-center py-8">Sin registros</p>
+            ) : (
+              <ul className="space-y-3">
+                {recentAtenciones.map((a: any) => (
+                  <li key={a.id} className="border-b border-border last:border-0 pb-2 last:pb-0">
+                    <p className="text-sm font-medium text-foreground truncate">{a.pacienteNombre}</p>
+                    <p className="text-xs text-muted-foreground flex justify-between">
+                      <span>{getProgramaById(a.programaId)?.nombre || "Atención"}</span>
+                      <span>{getRelativeTime(a.createdAtISO, a.fecha)}</span>
+                    </p>
                   </li>
                 ))}
               </ul>
             )}
           </div>
-        )}
-      </div>
-
-      {isAdmin && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Recientes Atenciones */}
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-             <div className="mb-4 flex items-center gap-2">
-               <ClipboardList className="h-5 w-5 text-primary" />
-               <h2 className="text-lg font-semibold text-foreground">Atenciones Recientes Globales</h2>
-             </div>
-             {recentAtenciones.length === 0 ? (
-               <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
-                 No hay atenciones registradas.
-               </div>
-             ) : (
-               <ul className="flex flex-col gap-3">
-                 {recentAtenciones.map((a: any) => (
-                   <li key={a.id} className="flex items-center gap-4 rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                       {a.pacienteNombre.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
-                     </div>
-                     <div className="flex-1 min-w-0">
-                       <p className="text-sm font-medium text-foreground truncate">{a.pacienteNombre}</p>
-                       <p className="text-xs text-muted-foreground">
-                          {getProgramaById(a.programaId)?.nombre} — {getRelativeTime(a.createdAtISO, a.fecha)}
-                       </p>
-                       <p className="text-[11px] text-muted-foreground/80 mt-0.5">
-                         Por: <span className="font-medium text-foreground/80">{a.profesionalNombre}</span>
-                       </p>
-                     </div>
-                   </li>
-                 ))}
-               </ul>
-             )}
-          </div>
-          {/* Recientes Identificaciones */}
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-             <div className="mb-4 flex items-center gap-2">
-               <Database className="h-5 w-5 text-chart-2" />
-               <h2 className="text-lg font-semibold text-foreground">Identificaciones Recientes Globales</h2>
-             </div>
-             {recentIdentificaciones.length === 0 ? (
-               <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
-                 No hay identificaciones registradas.
-               </div>
-             ) : (
-               <ul className="flex flex-col gap-3">
-                 {recentIdentificaciones.map((a: any) => (
-                   <li key={a.id} className="flex items-center gap-4 rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-chart-2/10 text-xs font-bold text-chart-2">
-                       {(a.direccion || "A").split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
-                     </div>
-                     <div className="flex-1 min-w-0">
-                       <p className="text-sm font-medium text-foreground truncate">{a.direccion}</p>
-                       <p className="text-xs text-muted-foreground">
-                         En: {a.territorio} — {getRelativeTime(a.fechaDiligenciamiento)}
-                       </p>
-                       {a.encuestador && (
-                         <p className="text-[11px] text-muted-foreground/80 mt-0.5">
-                           Por: <span className="font-medium text-foreground/80">{a.encuestador?.nombre} {a.encuestador?.apellidos}</span>
-                         </p>
-                       )}
-                     </div>
-                   </li>
-                 ))}
-               </ul>
-             )}
-          </div>
         </div>
-      )}
 
-      {/* Top 10 Profesionales */}
-      {userRol !== "auxiliar" && !isFacturador && (
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm mx-auto w-full lg:w-3/4 xl:w-2/3">
-          <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-warning fill-chart-4 text-chart-4" />
-              <h2 className="text-lg font-semibold text-foreground">
-                Top {TOP_N_PROFESIONALES} Profesionales con más atenciones
-              </h2>
-            </div>
-            <div className="text-xs bg-muted/40 text-muted-foreground px-3 py-1.5 rounded-full border border-border">
-              Ránking Institucional
-            </div>
+        {/* Últimas identificaciones */}
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col">
+          <div className="mb-4 flex items-center gap-2">
+            <Home className="h-5 w-5 text-chart-2" />
+            <h2 className="text-lg font-semibold text-foreground">Últimas identificaciones</h2>
           </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  <th className="px-4 py-3 text-left font-semibold text-foreground w-12 sm:w-16">Rank</th>
-                  <th className="px-4 py-3 text-left font-semibold text-foreground">Profesional</th>
-                  <th className="px-4 py-3 text-left font-semibold text-foreground hidden sm:table-cell">Programa</th>
-                  <th className="px-4 py-3 text-center font-semibold text-foreground">Atenciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {top10Profesionales.map((prof: any, index: number) => (
-                  <tr 
-                    key={prof.id} 
-                    className={`border-b border-border last:border-0 transition-colors ${
-                      prof.id === user?.id ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/20"
-                    }`}
-                  >
-                    <td className="px-4 py-3 font-bold text-muted-foreground">
-                      {index === 0 ? <Trophy className="h-4 w-4 text-warning" /> : `#${index + 1}`}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-foreground flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                      <div className="flex items-center gap-2 line-clamp-1">
-                        {prof.id === user?.id && <span className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Tú</span>}
-                        <span className="sm:hidden">{prof.nombre?.split(' ')[0]} {prof.apellidos?.split(' ')[0]}</span>
-                        <span className="hidden sm:inline">{prof.nombre} {prof.apellidos}</span>
-                      </div>
-                      <span className="text-[11px] text-muted-foreground sm:hidden">
-                        {prof.programaNombre}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
-                      {prof.programaNombre}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="inline-flex items-center justify-center bg-primary/10 text-primary font-bold rounded-md px-2.5 py-1 min-w-[3rem]">
-                        {prof.atencCount}
-                      </span>
-                    </td>
-                  </tr>
+          <div className="flex-1 overflow-y-auto max-h-[360px]">
+            {recentIdentificaciones.length === 0 ? (
+              <p className="text-muted-foreground text-sm text-center py-8">Sin registros</p>
+            ) : (
+              <ul className="space-y-3">
+                {recentIdentificaciones.map((a: any) => (
+                  <li key={a.id} className="border-b border-border last:border-0 pb-2 last:pb-0">
+                    <p className="text-sm font-medium text-foreground truncate">{a.direccion || "Sin dirección"}</p>
+                    <p className="text-xs text-muted-foreground flex justify-between">
+                      <span>{a.territorio || "Territorio"}</span>
+                      <span>{getRelativeTime(a.fechaDiligenciamiento)}</span>
+                    </p>
+                  </li>
                 ))}
-              </tbody>
-            </table>
+              </ul>
+            )}
           </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }

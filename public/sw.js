@@ -2,8 +2,7 @@ const CACHE_NAME = 'choco-population-cache-v1';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json',
-  '/icon.svg',
-  '/globals.css'
+  '/icon.svg'
 ];
 
 self.addEventListener('install', (event) => {

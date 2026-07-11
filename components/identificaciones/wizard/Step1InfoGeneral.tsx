@@ -12,7 +12,7 @@ import { useAuth } from '@/lib/auth-context'
 import { COLOMBIA_DIVIPOLA } from '@/lib/colombia'
 
 export default function Step1InfoGeneral() {
-  const { register, setValue, watch } = useFormContext()
+  const { register, setValue, watch, getValues } = useFormContext()
   const { user, isSuperAdmin } = useAuth()
 
   const { data: rawTerritorios } = useSWR("/api/territorios", fetcher)
@@ -50,10 +50,19 @@ export default function Step1InfoGeneral() {
   useEffect(() => {
     if (userTerritorio) {
       setValue('equipoTerritorio', `${userTerritorio.nombre} (${userTerritorio.codigo})`)
+      
+      const currentDept = getValues('departamento')
+      const currentMuni = getValues('municipio')
+      if (!currentDept && userTerritorio.departamento) {
+        setValue('departamento', userTerritorio.departamento.toUpperCase())
+      }
+      if (!currentMuni && userTerritorio.municipio) {
+        setValue('municipio', userTerritorio.municipio.toUpperCase())
+      }
     } else if (user) {
       setValue('equipoTerritorio', 'administrativo')
     }
-  }, [userTerritorio, user, setValue])
+  }, [userTerritorio, user, setValue, getValues])
 
   // Obtener programas para mapear especialidad del profesional
   const { data: rawProgramas } = useSWR("/api/programas", fetcher)

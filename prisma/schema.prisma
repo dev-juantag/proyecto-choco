@@ -44,6 +44,8 @@ model Territorio {
   nombre        String
   descripcion   String?
   whatsappLink  String?
+  departamento  String?
+  municipio     String?
   users         User[]        @relation("UserTerritorio")
   usersAsignados User[]       @relation("UserTerritoriosAsignados")
   fichas        FichaHogar[]
@@ -116,11 +118,14 @@ model FichaHogar {
   apgar                 Int?
   apgarRespuestas       Int[]
   ecomapa               Int?
+  ecomapaRespuestas     Int[]
   cuidadorPrincipal     Boolean?      @default(false)
   zarit                 Int?
+  zaritRespuestas       Int[]
   vulnerabilidades      Int[]
   familiogramaCodigo    String?
   otrosJson             Json?
+  consentimiento        Json?
   pacientes             Paciente[]
   seguimientos          SeguimientoFamiliar[]
   derivaciones          Derivacion[]
@@ -166,6 +171,7 @@ model Paciente {
   frecuenciaRespiratoria  Int?
   saturacionOxigeno       Float?
   perimetroCefalico       Float?
+  perimetroAbdominal      Float?
   tipoCancer              String?
   riesgoMetalesPesados    Json?
   practicaDeportiva       Boolean?      @default(false)
