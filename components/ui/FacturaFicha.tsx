@@ -5,7 +5,8 @@ import {
   VULNERABILIDADES, DIAGNOSTICO_NUTRICIONAL, PARENTESCO, REGIMEN_SALUD, OCUPACION,
   APGAR_PREGUNTAS, ECOMAPA_PREGUNTAS, ZARIT_PREGUNTAS, ETNIA, GRUPO_POBLACIONAL, 
   BARRERAS_ACCESO, DISCAPACIDADES, NIVEL_EDUCATIVO, ANTECEDENTES_CRONICOS,
-  ANTECEDENTES_TRANSMISIBLES, INTERVENCIONES_PENDIENTES, REMISIONES_SISTEMA, PERFIL_ENCUESTADOR
+  ANTECEDENTES_TRANSMISIBLES, INTERVENCIONES_PENDIENTES, REMISIONES_SISTEMA, PERFIL_ENCUESTADOR,
+  ESTADO_CONSERVACION, ESTADO_BANO, RIESGOS_CAMBIO_CLIMATICO, TIPO_MINERIA_OPCIONES, ORIGEN_EXPOSICION_METALES
 } from '@/lib/constants'
 import FamiliogramaViewer from './FamiliogramaViewer'
 import FamiliogramaStaticViewer from './FamiliogramaStaticViewer'
@@ -143,11 +144,11 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
   }
 
   // Estilos base para la impresión
-  const sectionCls = "mb-6"
-  const headerCls = "font-black text-lg uppercase mb-3 pb-1.5 border-b-2 border-black"
-  const tblCls = "w-full text-left border-collapse mb-5 print:break-inside-avoid"
-  const thCls = "font-bold text-xs w-1/3 py-1 align-top uppercase border-b border-gray-300"
-  const tdCls = "text-xs py-1 align-top border-b border-gray-200"
+  const sectionCls = "mb-5 print:mb-3"
+  const headerCls = "font-black text-base uppercase mb-2 pb-1 border-b-2 border-black print:text-sm print:mb-2 print:pb-1"
+  const tblCls = "w-full text-left border-collapse mb-4 print:mb-3 print:break-inside-avoid"
+  const thCls = "font-bold text-xs w-1/3 py-1 align-top uppercase border-b border-gray-300 print:text-[10.5px] print:py-0.8"
+  const tdCls = "text-xs py-1 align-top border-b border-gray-200 print:text-[10.5px] print:py-0.8"
 
   const Th = ({ children, className, style }: { children: React.ReactNode, className?: string, style?: React.CSSProperties }) => <th className={`${thCls} ${className || ''}`} style={style}>{children}</th>
   const Td = ({ children, className, style }: { children: React.ReactNode, className?: string, style?: React.CSSProperties }) => <td className={`${tdCls} ${className || ''}`} style={style}>{children}</td>
@@ -157,7 +158,7 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
     <style type="text/css" media="print">
       {`
         @page {
-          margin-top: 2.2cm;
+          margin-top: 1.8cm;
           margin-bottom: 2.5cm;
           margin-left: 1cm;
           margin-right: 1cm;
@@ -180,13 +181,13 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
       <div className="relative z-10 pb-16">
       {/* HEADER GLOBAL */}
       <div className="flex items-center justify-between mb-6 pb-3" style={{ borderBottom: '4px solid black' }}>
-        <img src="/logo-gobernacion-risaralda.png" alt="Logo Gobernación" className="w-20 h-20 shrink-0 object-contain" />
+        <img src="/logo-optimus-green.png" alt="Logo Optimus Green" className="w-24 h-24 shrink-0 object-contain" />
         <div className="text-center px-4 flex-1">
           <h1 className="font-black text-2xl uppercase tracking-widest">Identificación Familiar</h1>
           <p className="font-bold text-base mt-1 tracking-widest text-gray-600">FICHA OFICIAL NO. {ficha.consecutivo || ficha.id?.substring(0,8)}</p>
           <p className="mt-0.5 font-sans text-xs text-gray-500">Documento impreso el {new Date().toLocaleString('es-CO')}</p>
         </div>
-        <img src="/icono-ese-salud-pereira.png" alt="Logo ESE Salud Paimadó" className="w-20 h-20 shrink-0 object-contain" />
+        <img src="/logo-cimentamos.png" alt="Logo Cimentamos" className="w-20 h-20 shrink-0 object-contain" />
       </div>
 
       {/* CASO A: FICHA RECHAZADA O NO EFECTIVA (VERSIÓN CORTA) */}
@@ -262,13 +263,15 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
               </tbody>
             </table>
 
-            <h2 className={headerCls}>4. Características Físicas de la Vivienda</h2>
+            <h2 className={headerCls}>4. Características Físicas y Conservación de la Vivienda</h2>
             <table className={tblCls}>
               <tbody>
                 <tr><Th>Tipo de Vivienda</Th><Td>{getLabel(TIPO_VIVIENDA, ficha.tipoVivienda)}{ficha.tipoViviendaDesc ? ` - ${ficha.tipoViviendaDesc}` : ''}</Td></tr>
-                <tr><Th>Material de Paredes</Th><Td>{getLabel(MATERIAL_PAREDES, ficha.matParedes)}</Td></tr>
-                <tr><Th>Material de Pisos</Th><Td>{getLabel(MATERIAL_PISOS, ficha.matPisos)}</Td></tr>
-                <tr><Th>Material de Techos</Th><Td>{getLabel(MATERIAL_TECHOS, ficha.matTechos)}</Td></tr>
+                <tr><Th>Material / Estado de Paredes</Th><Td>{getLabel(MATERIAL_PAREDES, ficha.matParedes)} <span className="font-bold">({getLabel(ESTADO_CONSERVACION, ficha.otrosJson?.estadoParedes || ficha.estadoParedes)})</span></Td></tr>
+                <tr><Th>Material / Estado de Pisos</Th><Td>{getLabel(MATERIAL_PISOS, ficha.matPisos)} <span className="font-bold">({getLabel(ESTADO_CONSERVACION, ficha.otrosJson?.estadoPisos || ficha.estadoPisos)})</span></Td></tr>
+                <tr><Th>Material / Estado de Techos</Th><Td>{getLabel(MATERIAL_TECHOS, ficha.matTechos)} <span className="font-bold">({getLabel(ESTADO_CONSERVACION, ficha.otrosJson?.estadoTechos || ficha.estadoTechos)})</span></Td></tr>
+                <tr><Th>Estado de Baño / Sanitario</Th><Td><span className="font-bold">{getLabel(ESTADO_BANO, ficha.otrosJson?.estadoBano || ficha.estadoBano)}</span></Td></tr>
+                <tr><Th>Estado de Cocina</Th><Td><span className="font-bold">{getLabel(ESTADO_CONSERVACION, ficha.otrosJson?.estadoCocina || ficha.estadoCocina)}</span></Td></tr>
                 <tr><Th>Total Hogares en Vivienda</Th><Td>{ficha.numHogares || 1}</Td></tr>
                 <tr><Th>Dormitorios Exclusivos</Th><Td>{ficha.numDormitorios || 0}</Td></tr>
                 <tr><Th>Estrato Social</Th><Td>{ficha.estratoSocial || 'N/A'}</Td></tr>
@@ -285,20 +288,27 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
                     })()}
                   </Td>
                 </tr>
+                {(ficha.otrosJson?.observacionesInmueble || ficha.observacionesInmueble) && (
+                  <tr><Th>Observaciones de Inmueble / Mejoras</Th><Td className="italic font-bold">{ficha.otrosJson?.observacionesInmueble || ficha.observacionesInmueble}</Td></tr>
+                )}
               </tbody>
             </table>
           </div>
 
           {/* PAGINA 2: Saneamiento, Composición y Escalas APGAR, ECOMAPA y ZARIT */}
-          <div className={sectionCls} style={{ pageBreakBefore: 'always', paddingTop: '1.1cm' }}>
-            <h2 className={headerCls}>5. Saneamiento Básico</h2>
+          <div className={sectionCls} style={{ pageBreakBefore: 'always', paddingTop: '0.4cm' }}>
+            <h2 className={headerCls}>5. Salud Ambiental y Saneamiento Básico</h2>
             <table className={tblCls}>
               <tbody>
-                <tr><Th>Fuente de Agua</Th><Td>{getLabelsWithOtros(FUENTE_AGUA, ficha.fuenteAgua, ficha.otrosJson?.fuenteAguaOtro)}</Td></tr>
+                <tr><Th>Fuente Principal de Agua</Th><Td>{getLabelsWithOtros(FUENTE_AGUA, ficha.fuenteAgua, ficha.otrosJson?.fuenteAguaOtro)}</Td></tr>
+                {(ficha.otrosJson?.fuenteAguaTratamiento || ficha.fuenteAguaTratamiento) && (
+                  <tr><Th>Tratamiento de Agua para Consumo</Th><Td className="font-bold">{ficha.otrosJson?.fuenteAguaTratamiento || ficha.fuenteAguaTratamiento}</Td></tr>
+                )}
                 <tr><Th>Servicio Sanitario / Excretas</Th><Td>{getLabelsWithOtros(DISPOSICION_EXCRETAS, ficha.dispExcretas, ficha.otrosJson?.dispExcretasOtro)}</Td></tr>
                 <tr><Th>Disposición Aguas Residuales</Th><Td>{getLabelsWithOtros(AGUAS_RESIDUALES, ficha.aguasResiduales, ficha.otrosJson?.aguasResidualesOtro)}</Td></tr>
                 <tr><Th>Recolección de Residuos</Th><Td>{getLabelsWithOtros(DISPOSICION_RESIDUOS, ficha.dispResiduos, ficha.otrosJson?.dispResiduosOtro)}</Td></tr>
                 <tr><Th>Riesgos en la Vivienda</Th><Td>{getLabelsWithOtros(RIESGO_ACCIDENTE, ficha.riesgoAccidente, ficha.otrosJson?.riesgoAccidenteOtro || ficha.otrosJson?.riesdeAccidenteOtro)}</Td></tr>
+                <tr><Th>Riesgos por Cambio Climático</Th><Td className="font-bold">{getLabels(RIESGOS_CAMBIO_CLIMATICO, ficha.otrosJson?.riesgosCambioClimatico || ficha.riesgosCambioClimatico)}</Td></tr>
                 <tr><Th>Presencia de Vectores</Th><Td>{ficha.presenciaVectores ? 'Sí' : 'No'}</Td></tr>
                 <tr><Th>Tenencia de Mascotas</Th><Td>{getLabelsWithOtros(ANIMALES, ficha.animales, ficha.otrosJson?.animalesOtro)} (Total: {ficha.cantAnimales || 0})</Td></tr>
                 {(ficha.cantAnimales > 0) && (
@@ -307,11 +317,12 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
               </tbody>
             </table>
 
-            <h2 className={headerCls}>6. Composición y Dinámica Familiar</h2>
+            <h2 className={headerCls}>6. Composición y Dinámica Socioeconómica Familiar</h2>
             <table className={tblCls}>
               <tbody>
                 <tr><Th>Tipo de Familia</Th><Td>{getLabel(TIPO_FAMILIA, ficha.tipoFamilia)}</Td></tr>
                 <tr><Th>Número de Integrantes</Th><Td>{ficha.numIntegrantes || 0}</Td></tr>
+                <tr><Th>Integrantes en Minería</Th><Td className="font-bold text-amber-900">{ficha.otrosJson?.numIntegrantesMineria || ficha.numIntegrantesMineria || 0} persona(s)</Td></tr>
                 <tr><Th>Vulnerabilidades del Hogar</Th><Td className="uppercase">{getLabels(VULNERABILIDADES, ficha.vulnerabilidades)}</Td></tr>
               </tbody>
             </table>
@@ -325,14 +336,14 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
                   const textoRespuesta = valorRespuesta != null ? APGAR_VALORES[valorRespuesta] : 'No respondido';
                   return (
                     <tr key={idx}>
-                      <Th className="font-medium text-[10px]">{pregunta}</Th>
-                      <Td className="font-bold text-xs">{textoRespuesta}</Td>
+                      <Th className="font-medium text-[10.5px]">{pregunta}</Th>
+                      <Td className="font-bold text-[10.5px]">{textoRespuesta}</Td>
                     </tr>
                   )
                 })}
                 <tr className="bg-gray-100 italic">
                   <Th className="font-black">Resultado Apgar</Th>
-                  <Td className="font-black" style={{ fontSize: '1rem' }}>
+                  <Td className="font-black text-xs">
                     {(() => {
                       let cat = getLabel(APGAR_OPCIONES, ficha.apgar).split(' (')[0];
                       if (ficha.apgarRespuestas && Array.isArray(ficha.apgarRespuestas)) {
@@ -361,14 +372,14 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
                   const textoRespuesta = valorRespuesta != null ? ECOMAPA_VALORES[valorRespuesta] : 'No respondido';
                   return (
                     <tr key={idx}>
-                      <Th className="font-medium text-[10px]">{pregunta}</Th>
-                      <Td className="font-bold text-xs">{textoRespuesta}</Td>
+                      <Th className="font-medium text-[10.5px]">{pregunta}</Th>
+                      <Td className="font-bold text-[10.5px]">{textoRespuesta}</Td>
                     </tr>
                   )
                 })}
                 <tr className="bg-gray-100 italic">
                   <Th className="font-black">Resultado Ecomapa</Th>
-                  <Td className="font-black" style={{ fontSize: '1rem' }}>
+                  <Td className="font-black text-xs">
                     {getLabel(ECOMAPA_OPCIONES, ficha.ecomapa).split(' (')[0]}
                   </Td>
                 </tr>
@@ -390,14 +401,14 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
                       const textoRespuesta = valorRespuesta != null ? ZARIT_VALORES[valorRespuesta] : 'No respondido';
                       return (
                         <tr key={idx}>
-                          <Th className="font-medium text-[10px]">{pregunta}</Th>
-                          <Td className="font-bold text-xs">{textoRespuesta}</Td>
+                          <Th className="font-medium text-[10.5px]">{pregunta}</Th>
+                          <Td className="font-bold text-[10.5px]">{textoRespuesta}</Td>
                         </tr>
                       )
                     })}
                     <tr className="bg-gray-100 italic">
                       <Th className="font-black">Nivel de Sobrecarga (Zarit)</Th>
-                      <Td className="font-black" style={{ fontSize: '1rem' }}>
+                      <Td className="font-black text-xs">
                         {getLabel(ZARIT_OPCIONES, ficha.zarit).split(' (')[0]}
                       </Td>
                     </tr>
@@ -409,7 +420,7 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
 
           {/* PAGINA 3: Familiograma */}
           {ficha.familiogramaCodigo && (
-            <div className={sectionCls} style={{ pageBreakBefore: 'always', paddingTop: '1.1cm' }}>
+            <div className={sectionCls} style={{ pageBreakBefore: 'always', paddingTop: '0.4cm' }}>
               <h2 className={headerCls}>Familiograma Clínico</h2>
               <div className="border border-slate-300 rounded min-h-[600px] h-auto relative w-full">
                 {!String(ficha.familiogramaCodigo).startsWith('{') ? (
@@ -422,7 +433,7 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
           )}
 
           {/* PAGINAS DE INTEGRANTES */}
-          <div className={sectionCls} style={{ pageBreakBefore: 'always', paddingTop: '1.1cm' }}>
+          <div className={sectionCls} style={{ pageBreakBefore: 'always', paddingTop: '0.4cm' }}>
             <h2 className={headerCls}>10. Censo e Información de Integrantes</h2>
             {ficha.pacientes && ficha.pacientes.length > 0 ? (
               ficha.pacientes.map((int: any, intIdx: number) => {
@@ -430,68 +441,68 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
                 return (
                   <div 
                     key={int.id || intIdx} 
-                    className="mb-8 border-b-2 border-dashed border-gray-300 pb-6 last:border-0 print:break-inside-avoid"
-                    style={intIdx > 0 && intIdx % 2 === 0 ? { pageBreakBefore: 'always', paddingTop: '1.1cm' } : {}}
+                    className="mb-6 border-b-2 border-dashed border-gray-300 pb-4 last:border-0 print:mb-2 print:pb-2 print:break-inside-avoid"
+                    style={intIdx > 0 && intIdx % 2 === 0 ? { pageBreakBefore: 'always', paddingTop: '0.4cm' } : {}}
                   >
                     {/* ID & Nombres */}
-                    <div className="flex items-center gap-2 mb-4 mt-2">
-                      <div className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center font-bold text-xs">
+                    <div className="flex items-center gap-2 mb-2 mt-1">
+                      <div className="w-6 h-6 rounded-full bg-black text-white flex items-center justify-center font-bold text-xs">
                         #{globalIdx}
                       </div>
-                      <h3 className="font-black text-base uppercase">
+                      <h3 className="font-black text-sm sm:text-base uppercase">
                         {int.nombres ? `${int.nombres} ${int.apellidos}` : `${int.primerNombre || ''} ${int.segundoNombre || ''} ${int.primerApellido || ''} ${int.segundoApellido || ''}`.trim()}
                       </h3>
                     </div>
 
                     {/* Información Básica */}
-                    <div className="grid grid-cols-2 gap-x-8">
+                    <div className="grid grid-cols-2 gap-x-6">
                       <table className="w-full text-left text-xs border-collapse">
                         <tbody>
-                          <tr><th className="font-bold py-1 w-2/5 border-b border-gray-100">Documento:</th><td className="py-1 border-b border-gray-100 uppercase">{int.tipoDoc} {int.documento || int.numDoc}</td></tr>
-                          <tr><th className="font-bold py-1 border-b border-gray-100">Nacimiento:</th><td className="py-1 border-b border-gray-100">{int.fechaNacimiento} ({calculateAge(int.fechaNacimiento)} años)</td></tr>
-                          <tr><th className="font-bold py-1 border-b border-gray-100">Género:</th><td className="py-1 border-b border-gray-100 uppercase">{int.sexo}</td></tr>
-                          <tr><th className="font-bold py-1 border-b border-gray-100">Parentesco:</th><td className="py-1 border-b border-gray-100 uppercase">{getLabel(PARENTESCO, int.parentesco)}</td></tr>
-                          <tr><th className="font-bold py-1 border-b border-gray-100">Régimen / EAPB:</th><td className="py-1 border-b border-gray-100 uppercase">{getLabel(REGIMEN_SALUD, int.regimen)} / {int.eapb || '-'}</td></tr>
-                          <tr><th className="font-bold py-1 border-b border-gray-100">Ocupación:</th><td className="py-1 border-b border-gray-100 uppercase">{getLabel(OCUPACION, int.ocupacion)}</td></tr>
-                          <tr><th className="font-bold py-1 border-b border-gray-100">Nivel Educativo:</th><td className="py-1 border-b border-gray-100 uppercase">{getLabel(NIVEL_EDUCATIVO, int.nivelEducativo)}</td></tr>
+                          <tr><th className="font-bold py-0.5 w-2/5 border-b border-gray-100 print:text-[10px]">Documento:</th><td className="py-0.5 border-b border-gray-100 uppercase print:text-[10px]">{int.tipoDoc} {int.documento || int.numDoc}</td></tr>
+                          <tr><th className="font-bold py-0.5 border-b border-gray-100 print:text-[10px]">Nacimiento:</th><td className="py-0.5 border-b border-gray-100 print:text-[10px]">{int.fechaNacimiento} ({calculateAge(int.fechaNacimiento)} años)</td></tr>
+                          <tr><th className="font-bold py-0.5 border-b border-gray-100 print:text-[10px]">Género:</th><td className="py-0.5 border-b border-gray-100 uppercase print:text-[10px]">{int.sexo}</td></tr>
+                          <tr><th className="font-bold py-0.5 border-b border-gray-100 print:text-[10px]">Parentesco:</th><td className="py-0.5 border-b border-gray-100 uppercase print:text-[10px]">{getLabel(PARENTESCO, int.parentesco)}</td></tr>
+                          <tr><th className="font-bold py-0.5 border-b border-gray-100 print:text-[10px]">Régimen / EAPB:</th><td className="py-0.5 border-b border-gray-100 uppercase print:text-[10px]">{getLabel(REGIMEN_SALUD, int.regimen)} / {int.eapb || '-'}</td></tr>
+                          <tr><th className="font-bold py-0.5 border-b border-gray-100 print:text-[10px]">Ocupación:</th><td className="py-0.5 border-b border-gray-100 uppercase print:text-[10px]">{getLabel(OCUPACION, int.ocupacion)}</td></tr>
+                          <tr><th className="font-bold py-0.5 border-b border-gray-100 print:text-[10px]">Nivel Educativo:</th><td className="py-0.5 border-b border-gray-100 uppercase print:text-[10px]">{getLabel(NIVEL_EDUCATIVO, int.nivelEducativo)}</td></tr>
                           <tr>
-                            <th className="font-bold py-1 border-b border-gray-100">Pertenencia Étnica:</th>
-                            <td className="py-1 border-b border-gray-100 uppercase">
+                            <th className="font-bold py-0.5 border-b border-gray-100 print:text-[10px]">Pertenencia Étnica:</th>
+                            <td className="py-0.5 border-b border-gray-100 uppercase print:text-[10px]">
                               {getLabel(ETNIA, int.etnia)}
                               {String(int.etnia) === '1' && int.puebloIndigena ? ` (${int.puebloIndigena})` : ''}
                             </td>
                           </tr>
-                          <tr><th className="font-bold py-1 border-b border-gray-100">Grupo Pob. Especial:</th><td className="py-1 border-b border-gray-100 uppercase">{getLabels(GRUPO_POBLACIONAL, int.grupoPoblacional)}</td></tr>
+                          <tr><th className="font-bold py-0.5 border-b border-gray-100 print:text-[10px]">Grupo Pob. Especial:</th><td className="py-0.5 border-b border-gray-100 uppercase print:text-[10px]">{getLabels(GRUPO_POBLACIONAL, int.grupoPoblacional)}</td></tr>
                         </tbody>
                       </table>
 
                       <table className="w-full text-left text-xs border-collapse">
                         <tbody>
-                          <tr><th className="font-bold py-1 w-2/5 border-b border-gray-100">Peso / Talla:</th><td className="py-1 border-b border-gray-100">{int.peso ? `${int.peso} kg` : '-'} / {int.talla ? `${int.talla} cm` : '-'}</td></tr>
+                          <tr><th className="font-bold py-0.5 w-2/5 border-b border-gray-100 print:text-[10px]">Peso / Talla:</th><td className="py-0.5 border-b border-gray-100 print:text-[10px]">{int.peso ? `${int.peso} kg` : '-'} / {int.talla ? `${int.talla} cm` : '-'}</td></tr>
                           <tr>
-                            <th className="font-bold py-1 border-b border-gray-100">IMC / Obesidad:</th>
-                            <td className="py-1 border-b border-gray-100 font-bold uppercase">
+                            <th className="font-bold py-0.5 border-b border-gray-100 print:text-[10px]">IMC / Obesidad:</th>
+                            <td className="py-0.5 border-b border-gray-100 font-bold uppercase print:text-[10px]">
                               {(() => {
                                 const res = calculateIMC(int.peso, int.talla);
                                 return `${res.imc} (${res.clasificacion})`;
                               })()}
                             </td>
                           </tr>
-                          <tr><th className="font-bold py-1 border-b border-gray-100">P. Braquial:</th><td className="py-1 border-b border-gray-100">{int.perimetroBraquial ? `${int.perimetroBraquial} cm` : '-'}</td></tr>
-                          <tr><th className="font-bold py-1 border-b border-gray-100">Diag. Nutricional:</th><td className="py-1 border-b border-gray-100 uppercase">{getLabel(DIAGNOSTICO_NUTRICIONAL, int.diagNutricional)}</td></tr>
-                          <tr><th className="font-bold py-1 border-b border-gray-100">Gestante:</th><td className="py-1 border-b border-gray-100 font-bold uppercase">{int.gestante || 'NO'}{int.gestante === 'SI' && int.mesesGestacion ? ` (${int.mesesGestacion} meses)` : ''}</td></tr>
-                          <tr><th className="font-bold py-1 border-b border-gray-100">Discapacidades:</th><td className="py-1 border-b border-gray-100 uppercase">{getLabels(DISCAPACIDADES, int.discapacidades)}</td></tr>
-                          <tr><th className="font-bold py-1 border-b border-gray-100">Barreras de Acceso:</th><td className="py-1 border-b border-gray-100 uppercase">{getLabels(BARRERAS_ACCESO, int.barrerasAcceso)}</td></tr>
+                          <tr><th className="font-bold py-0.5 border-b border-gray-100 print:text-[10px]">P. Braquial:</th><td className="py-0.5 border-b border-gray-100 print:text-[10px]">{int.perimetroBraquial ? `${int.perimetroBraquial} cm` : '-'}</td></tr>
+                          <tr><th className="font-bold py-0.5 border-b border-gray-100 print:text-[10px]">Diag. Nutricional:</th><td className="py-0.5 border-b border-gray-100 uppercase print:text-[10px]">{getLabel(DIAGNOSTICO_NUTRICIONAL, int.diagNutricional)}</td></tr>
+                          <tr><th className="font-bold py-0.5 border-b border-gray-100 print:text-[10px]">Gestante:</th><td className="py-0.5 border-b border-gray-100 font-bold uppercase print:text-[10px]">{int.gestante || 'NO'}{int.gestante === 'SI' && int.mesesGestacion ? ` (${int.mesesGestacion} meses)` : ''}</td></tr>
+                          <tr><th className="font-bold py-0.5 border-b border-gray-100 print:text-[10px]">Discapacidades:</th><td className="py-0.5 border-b border-gray-100 uppercase print:text-[10px]">{getLabels(DISCAPACIDADES, int.discapacidades)}</td></tr>
+                          <tr><th className="font-bold py-0.5 border-b border-gray-100 print:text-[10px]">Barreras de Acceso:</th><td className="py-0.5 border-b border-gray-100 uppercase print:text-[10px]">{getLabels(BARRERAS_ACCESO, int.barrerasAcceso)}</td></tr>
                         </tbody>
                       </table>
                     </div>
 
                     {/* Sub-bloques de salud */}
-                    <div className="grid grid-cols-2 gap-x-8 mt-4 pt-3 border-t border-gray-200">
+                    <div className="grid grid-cols-2 gap-x-6 mt-2.5 pt-2 border-t border-gray-200">
                       {/* Antecedentes & Signos Vitales */}
                       <div>
-                        <p className="font-bold text-[#081e69] uppercase tracking-wider text-[10px] mb-2">Antecedentes & Signos Vitales</p>
-                        <div className="space-y-1 text-[10px]">
+                        <p className="font-bold text-[#081e69] uppercase tracking-wider text-[10px] mb-1">Antecedentes & Signos Vitales</p>
+                        <div className="space-y-0.5 text-[9.5px]">
                           <p className="text-gray-500 font-semibold uppercase">A. Crónicos: <span className="font-bold text-gray-800 text-black">
                             {(() => {
                               const list = parseMedicalHistoryList(int.antecedentes);
@@ -559,7 +570,7 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
                               else zScoreEval = 'Adecuado (Eutrófico)';
                             }
                             return (
-                              <div className="mt-2 p-1.5 bg-gray-50 border border-gray-200 rounded text-[9px]">
+                              <div className="mt-1 p-1 bg-gray-50 border border-gray-200 rounded text-[8.5px]">
                                 <p className="font-bold text-gray-700 uppercase mb-0.5">Indicadores OMS Z-Score</p>
                                 <div className="grid grid-cols-2 gap-1 text-[8px] leading-tight">
                                   {ageVal < 10 && <p className="text-gray-500 font-medium">P/E: <span className="font-bold text-green-700">Normal (aprox)</span></p>}
@@ -575,9 +586,9 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
 
                       {/* Exposición a Metales Pesados */}
                       <div>
-                        <p className="font-bold text-[#081e69] uppercase tracking-wider text-[10px] mb-2">Exposición a Metales Pesados</p>
+                        <p className="font-bold text-[#081e69] uppercase tracking-wider text-[10px] mb-1">Exposición a Metales Pesados</p>
                         {int.riesgoMetalesPesados && int.riesgoMetalesPesados.aplicaExposicion ? (
-                          <div className="space-y-1 text-[10px]">
+                          <div className="space-y-0.5 text-[9.5px]">
                             <div className="flex items-center gap-1.5 text-gray-500 font-semibold uppercase">
                               Nivel de Riesgo: 
                               {(() => {
@@ -586,14 +597,18 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
                                 if (calculated.value === 'ALTO') colorCls = "bg-red-100 text-red-700 border-red-200";
                                 else if (calculated.value === 'MEDIO') colorCls = "bg-orange-100 text-orange-700 border-orange-200";
                                 return (
-                                  <span className={`px-1.5 py-0.5 rounded font-black text-[9px] border uppercase ${colorCls}`}>
+                                  <span className={`px-1.5 py-0.2 rounded font-black text-[8.5px] border uppercase ${colorCls}`}>
                                     {calculated.label}
                                   </span>
                                 );
                               })()}
                             </div>
                             <p className="text-gray-500 font-semibold uppercase">Ocupación expuesta: <span className="font-bold text-gray-800">{getLabel(OCUPACION, int.riesgoMetalesPesados.ocupacion).replace(/_/g, ' ')} {getOcupacionTiempoLabel(int.riesgoMetalesPesados.ocupacionTiempo)}</span></p>
-                            <p className="text-gray-500 font-semibold uppercase">Continúa / Elementos de proteccion: <span className="font-bold text-gray-800">{int.riesgoMetalesPesados.continuaExpuesto || 'null'} / {int.riesgoMetalesPesados.utilizaEPP || 'null'}</span></p>
+
+                            {int.riesgoMetalesPesados.origenExposicion && (
+                              <p className="text-gray-500 font-semibold uppercase">Origen / Causa Exposición: <span className="font-bold text-gray-800">{getLabels(ORIGEN_EXPOSICION_METALES, int.riesgoMetalesPesados.origenExposicion)}</span></p>
+                            )}
+                            <p className="text-gray-500 font-semibold uppercase">Continúa / Proteccion: <span className="font-bold text-gray-800">{int.riesgoMetalesPesados.continuaExpuesto || 'null'} / {int.riesgoMetalesPesados.utilizaEPP || 'null'}</span></p>
                             <p className="text-gray-500 font-semibold uppercase">Exp. Ambiental: <span className="font-bold text-gray-800">{String(int.riesgoMetalesPesados.ambiental).replace(/_/g, ' ')} {getAmbientalTiempoLabel(int.riesgoMetalesPesados.ambientalTiempo)}</span></p>
                             <p className="text-gray-500 font-semibold uppercase">Consumo Pescado: <span className="font-bold text-gray-800">{getPescadoLabel(int.riesgoMetalesPesados.pescado)}</span></p>
                             <p className="text-gray-500 font-semibold uppercase">Amalgamas: <span className="font-bold text-gray-800">{getAmalgamasLabel(int.riesgoMetalesPesados.amalgamas)}</span></p>
@@ -605,24 +620,24 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
                             <p className="text-gray-500 font-semibold uppercase">Pruebas / Result: <span className="font-bold text-gray-800">{int.riesgoMetalesPesados.antecedentePrueba || 'null'} / {int.riesgoMetalesPesados.resultadoPrueba || 'null'}</span></p>
                           </div>
                         ) : (
-                          <p className="text-[10px] text-gray-400 font-semibold uppercase italic">Integrante sin registros de exposición a metales pesados</p>
+                          <p className="text-[9.5px] text-gray-400 font-semibold uppercase italic">Integrante sin registros de exposición a metales pesados</p>
                         )}
                       </div>
                     </div>
 
                     {/* Intervenciones y Remisiones */}
-                    <div className="grid grid-cols-2 gap-x-8 mt-4 pt-3 border-t border-dashed border-gray-200">
+                    <div className="grid grid-cols-2 gap-x-6 mt-2.5 pt-2 border-t border-dashed border-gray-200">
                       <div>
-                        <p className="font-bold text-[#081e69] uppercase tracking-wider text-[10px] mb-2">Intervenciones Pendientes (P&M)</p>
-                        <div className="space-y-1 text-[10px]">
+                        <p className="font-bold text-[#081e69] uppercase tracking-wider text-[10px] mb-1">Intervenciones Pendientes (P&M)</p>
+                        <div className="space-y-0.5 text-[9.5px]">
                           <p className="text-gray-500 font-semibold uppercase">Acciones / Chequeos: <span className="font-bold text-gray-800 text-black">
                             {getLabels(INTERVENCIONES_PENDIENTES, int.intervencionesPendientes)}
                           </span></p>
                         </div>
                       </div>
                       <div>
-                        <p className="font-bold text-[#081e69] uppercase tracking-wider text-[10px] mb-2">Enfermedad Aguda & Remisiones</p>
-                        <div className="space-y-1 text-[10px]">
+                        <p className="font-bold text-[#081e69] uppercase tracking-wider text-[10px] mb-1">Enfermedad Aguda & Remisiones</p>
+                        <div className="space-y-0.5 text-[9.5px]">
                           <p className="text-gray-500 font-semibold uppercase">Enfermedad Aguda (último mes): <span className="font-bold text-gray-800 text-black">
                             {int.enfermedadAguda ? `SÍ ${int.recibeAtencionMedica ? '(Recibe atención médica)' : '(No recibe atención médica)'}` : 'NO'}
                           </span></p>
@@ -677,15 +692,12 @@ export default function FacturaFicha({ ficha, autoPrint, showOnScreen }: { ficha
             )}
           </div>
 
-          {/* PAGINA FINAL: Autorizaciones, Firmas y Seguimientos */}
-          <div 
-            className="mt-8 pt-6 border-t-2 border-black"
-            style={!esImpar ? { pageBreakBefore: 'always', paddingTop: '1.1cm' } : {}}
-          >
+          {/* SECCIÓN FINAL: Autorizaciones, Firmas y Seguimientos */}
+          <div className="mt-6 pt-4 border-t-2 border-black print:break-inside-avoid">
             {/* AUTORIZACIÓN Y FIRMA (SECCIÓN 11) */}
             {ficha.consentimiento && (
-              <div className="border border-gray-300 rounded-xl p-4 bg-gray-50/50 print:break-inside-avoid mb-8">
-                <h3 className="font-bold text-[#081e69] uppercase text-xs tracking-wider border-b pb-1.5 mb-3 border-gray-200">
+              <div className="border border-gray-300 rounded-xl p-4 bg-gray-50/50 print:break-inside-avoid mb-6">
+                <h3 className="font-bold text-[#081e69] uppercase text-xs tracking-wider border-b pb-1.5 mb-2 border-gray-200">
                   11. Autorización de Datos y Firma Electrónica
                 </h3>
                 <div className="grid grid-cols-2 gap-8 text-xs">

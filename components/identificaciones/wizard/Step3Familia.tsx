@@ -120,8 +120,8 @@ export default function Step3Familia() {
 
       {/* Estructura familiar */}
       <div className={card} style={cardBorder}>
-        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#081e69' }}>Estructura Familiar</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#081e69' }}>Estructura y Dinámica Socioeconómica Familiar</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <F label="Tipo de familia" required>
             <select {...register('tipoFamilia')} className={sel}>
               <option value="">— Selecciona —</option>
@@ -130,6 +130,9 @@ export default function Step3Familia() {
           </F>
           <F label="N° de integrantes" required>
             <input type="number" min="1" placeholder="0" {...register('numIntegrantes')} className={inp} />
+          </F>
+          <F label="N° integrantes que trabajan en minería">
+            <input type="number" min="0" placeholder="0" {...register('numIntegrantesMineria')} className={inp} />
           </F>
         </div>
       </div>

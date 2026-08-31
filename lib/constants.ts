@@ -200,10 +200,12 @@ export const PARENTESCO = [
   { id: 1, label: "Jefe de hogar" },
   { id: 2, label: "Cónyuge o compañero" },
   { id: 3, label: "Hijo(a)" },
-  { id: 4, label: "Padre / Madre" },
+  { id: 4, label: "Padre" },
+  { id: 14, label: "Madre" },
   { id: 5, label: "Nieto(a)" },
   { id: 6, label: "Hermano(a)" },
-  { id: 7, label: "Yerno / Nuera" },
+  { id: 7, label: "Yerno" },
+  { id: 15, label: "Nuera" },
   { id: 10, label: "Suegro (a)" },
   { id: 11, label: "Tio (a)" },
   { id: 12, label: "Primo (a)" },
@@ -396,4 +398,41 @@ export function calcularCursoVida(fechaNacStr: string): string {
   if (edad <= 59) return "Adultez";
   return "Vejez";
 }
+
+export const ESTADO_CONSERVACION = [
+  { id: "BUENO", label: "Bueno" },
+  { id: "REGULAR", label: "Regular" },
+  { id: "MALO", label: "Malo (Requiere mejora)" }
+];
+
+export const ESTADO_BANO = [
+  { id: "BUENO", label: "Bueno" },
+  { id: "REGULAR", label: "Regular" },
+  { id: "MALO", label: "Malo (Requiere mejora)" },
+  { id: "NO_TIENE", label: "No tiene servicio / unidad sanitaria" }
+];
+
+export const RIESGOS_CAMBIO_CLIMATICO = [
+  { id: 1, label: "Inundaciones / Crecientes del río" },
+  { id: 2, label: "Deslizamientos / Derrumbes de tierra" },
+  { id: 3, label: "Vendavales / Tormentas fuertes" },
+  { id: 4, label: "Erosión de riberas o márgenes de ríos" },
+  { id: 5, label: "Contaminación de fuentes hídricas por minería o químicos" },
+  { id: 6, label: "Sequías prolongadas / Esccasez de agua" },
+  { id: 7, label: "Ninguno" }
+];
+
+export const TIPO_MINERIA_OPCIONES = [
+  { id: "SUBSISTENCIA_ARTESANAL", label: "Minería de subsistencia / Artesanal (Barequeo, bateo, manual)" },
+  { id: "MECANIZADA_INDUSTRIAL", label: "Minería mecanizada / Industrializada (Retroexcavadoras, dragas, motobombas)" }
+];
+
+export const ORIGEN_EXPOSICION_METALES = [
+  { id: "TRABAJO_MINERIA", label: "Trabajo / Labor directa en minería" },
+  { id: "CONSUMO_ENLATADOS_SARDINAS", label: "Consumo frecuente de enlatados (sardinas, atún, conservas)" },
+  { id: "CONSUMO_PESCADO_RIO", label: "Consumo de pescado de río o agua contaminada por minería" },
+  { id: "CERCANIA_AMBIENTAL", label: "Residencia o cercanía a zona minera o río contaminado" },
+  { id: "OTRO", label: "Otro origen" }
+];
+
 

@@ -4,7 +4,8 @@ import { useFormContext } from 'react-hook-form'
 import {
   TIPO_VIVIENDA, MATERIAL_PAREDES, MATERIAL_PISOS, MATERIAL_TECHOS,
   FUENTE_AGUA, DISPOSICION_EXCRETAS, AGUAS_RESIDUALES, DISPOSICION_RESIDUOS,
-  RIESGO_ACCIDENTE, FUENTE_ENERGIA, ANIMALES
+  RIESGO_ACCIDENTE, FUENTE_ENERGIA, ANIMALES,
+  ESTADO_CONSERVACION, ESTADO_BANO, RIESGOS_CAMBIO_CLIMATICO
 } from '@/lib/constants'
 import { inp, sel, card, cardBorder, lbl, lblStyle, required as reqStyle, chk, chkLabel, sectionTitle, sectionTitleStyle } from './wizardStyles'
 import { useEffect } from 'react'
@@ -64,7 +65,7 @@ export default function Step2Vivienda() {
       </div>
 
       {/* Características físicas */}
-      <Sec title="Características Físicas">
+      <Sec title="Características Físicas de la Vivienda">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <F label="Tipo de Vivienda" required>
             <select {...register('tipoVivienda')} className={sel}>
@@ -114,15 +115,59 @@ export default function Step2Vivienda() {
             </label>
           </F>
         </div>
+
+        {/* Evaluación Cualitativa de Estado para Proyectos de Mejora */}
+        <div className="mt-4 pt-3 border-t border-gray-100 space-y-3">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Evaluación de Estado de la Vivienda (Para Posibles Mejoras Habitacionales)</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <F label="Estado de paredes">
+              <select {...register('estadoParedes')} className={sel}>
+                <option value="">— Selecciona —</option>
+                {ESTADO_CONSERVACION.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+              </select>
+            </F>
+            <F label="Estado de pisos">
+              <select {...register('estadoPisos')} className={sel}>
+                <option value="">— Selecciona —</option>
+                {ESTADO_CONSERVACION.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+              </select>
+            </F>
+            <F label="Estado de techos">
+              <select {...register('estadoTechos')} className={sel}>
+                <option value="">— Selecciona —</option>
+                {ESTADO_CONSERVACION.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+              </select>
+            </F>
+            <F label="Estado de baño / sanitario">
+              <select {...register('estadoBano')} className={sel}>
+                <option value="">— Selecciona —</option>
+                {ESTADO_BANO.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+              </select>
+            </F>
+            <F label="Estado de cocina">
+              <select {...register('estadoCocina')} className={sel}>
+                <option value="">— Selecciona —</option>
+                {ESTADO_CONSERVACION.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+              </select>
+            </F>
+          </div>
+          <F label="Observaciones del Inmueble (Detalle de daños o necesidades de mejora)">
+            <textarea {...register('observacionesInmueble')} className={`${inp} min-h-[60px]`} placeholder="Escriba aquí los detalles del deterioro o posibles mejoras requeridas en la vivienda..." />
+          </F>
+        </div>
       </Sec>
 
-      {/* Saneamiento */}
-      <Sec title="Saneamiento Básico">
-        <Multi singleSelection label="Fuente de agua" options={FUENTE_AGUA} name="fuenteAgua" register={register} required={true} />
+      {/* Salud Ambiental y Saneamiento */}
+      <Sec title="Salud Ambiental y Saneamiento Básico">
+        <Multi singleSelection label="Fuente principal de agua de consumo" options={FUENTE_AGUA} name="fuenteAgua" register={register} required={true} />
+        <F label="Tratamiento del agua para beber (opcional)">
+          <input {...register('fuenteAguaTratamiento')} className={inp} placeholder="Ej. Hervida, filtrada, clorada, sin tratamiento..." />
+        </F>
         <Multi singleSelection label="Disposición de excretas" options={DISPOSICION_EXCRETAS} name="dispExcretas" register={register} required={true} />
         <Multi singleSelection label="Aguas residuales" options={AGUAS_RESIDUALES} name="aguasResiduales" register={register} required={true} />
         <Multi singleSelection label="Disposición de residuos" options={DISPOSICION_RESIDUOS} name="dispResiduos" register={register} required={true} />
-        <Multi label="Riesgos de accidente" options={RIESGO_ACCIDENTE} name="riesgoAccidente" register={register} required={true} />
+        <Multi label="Riesgos locativos y de accidentes" options={RIESGO_ACCIDENTE} name="riesgoAccidente" register={register} required={true} />
+        <Multi label="Riesgos por Cambio Climático y Emergencias Ambientales" options={RIESGOS_CAMBIO_CLIMATICO} name="riesgosCambioClimatico" register={register} />
         <Multi singleSelection label="Fuente de energía para cocinar" options={FUENTE_ENERGIA} name="fuenteEnergia" register={register} required={true} />
       </Sec>
 

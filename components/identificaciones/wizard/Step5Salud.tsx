@@ -5,7 +5,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import {
   ANTECEDENTES_CRONICOS, ANTECEDENTES_TRANSMISIBLES, INTERVENCIONES_PENDIENTES,
-  REMISIONES_SISTEMA, calcularEdad
+  REMISIONES_SISTEMA, calcularEdad, TIPO_MINERIA_OPCIONES, ORIGEN_EXPOSICION_METALES
 } from '@/lib/constants'
 import { inp, sel, lbl, lblStyle, chk, chkLabel, card, cardBorder } from './wizardStyles'
 import { F, Multi } from './wizardComponents'
@@ -334,6 +334,7 @@ export default function Step5Salud() {
                                 setValue(`integrantes.${i}.riesgoMetalesPesados.ocupacionTiempo`, 'NA');
                                 setValue(`integrantes.${i}.riesgoMetalesPesados.continuaExpuesto`, 'NA');
                                 setValue(`integrantes.${i}.riesgoMetalesPesados.utilizaEPP`, 'NA');
+                                setValue(`integrantes.${i}.riesgoMetalesPesados.tipoMineriaDetalle`, '');
                               } else {
                                 setValue(`integrantes.${i}.riesgoMetalesPesados.ocupacionTiempo`, '');
                                 setValue(`integrantes.${i}.riesgoMetalesPesados.continuaExpuesto`, '');
@@ -343,8 +344,8 @@ export default function Step5Salud() {
                             className={sel}
                           >
                             <option value="NINGUNA">Ninguna</option>
-                            <option value="MINERIA_ARTESANAL">Minería artesanal</option>
-                            <option value="MINERIA_INDUSTRIAL">Minería industrial</option>
+                            <option value="MINERIA_ARTESANAL">Minería artesanal / Subsistencia</option>
+                            <option value="MINERIA_INDUSTRIAL">Minería mecanizada / Industrial</option>
                             <option value="SOLDADURA">Soldadura o metalurgia</option>
                             <option value="PINTURA">Fabricación o aplicación de pinturas</option>
                             <option value="AGRICULTURA_PESTICIDAS">Agricultura con uso de pesticidas/herbicidas</option>
@@ -352,6 +353,14 @@ export default function Step5Salud() {
                             <option value="OTRA_RIESGO">Otras actividades de riesgo químico/industrial</option>
                           </select>
                         </F>
+
+
+                        <Multi 
+                          label="Origen / Causa sospechada de exposición a metales pesados" 
+                          options={ORIGEN_EXPOSICION_METALES} 
+                          name={`integrantes.${i}.riesgoMetalesPesados.origenExposicion`} 
+                          register={register} 
+                        />
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <F label="Tiempo de exposición laboral">

@@ -33,6 +33,7 @@ export async function GET(
           orderBy: { createdAt: 'asc' }
         },
         pacientes: {
+          orderBy: { createdAt: 'asc' },
           include: {
             atenciones: {
               include: {
@@ -227,6 +228,15 @@ export async function PUT(
         dispResiduosOtro: hogarData.dispResiduosOtro || null,
         riesgoAccidenteOtro: hogarData.riesgoAccidenteOtro || null,
         animalesOtro: hogarData.animalesOtro || null,
+        estadoParedes: hogarData.estadoParedes || null,
+        estadoPisos: hogarData.estadoPisos || null,
+        estadoTechos: hogarData.estadoTechos || null,
+        estadoBano: hogarData.estadoBano || null,
+        estadoCocina: hogarData.estadoCocina || null,
+        observacionesInmueble: hogarData.observacionesInmueble || null,
+        fuenteAguaTratamiento: hogarData.fuenteAguaTratamiento || null,
+        riesgosCambioClimatico: hogarData.riesgosCambioClimatico || [],
+        numIntegrantesMineria: hogarData.numIntegrantesMineria || "0",
       }
     }
 

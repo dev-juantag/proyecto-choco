@@ -208,15 +208,15 @@ export default function Step4Integrantes() {
                       {PARENTESCO.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
                     </select>
                   </F>
+                  <F label="Género" required>
+                    <select {...register(`integrantes.${i}.sexo`)} onChange={(e) => { register(`integrantes.${i}.sexo`).onChange(e); if (e.target.value === 'HOMBRE') setValue(`integrantes.${i}.gestante`, 'NA'); }} className={sel}>
+                      <option value="">— Selecciona —</option>
+                      {SEXO.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+                      <option value="INDETERMINADO">Indeterminado</option>
+                    </select>
+                  </F>
                   {!watch(`integrantes.${i}.datosDesconocidos`) && (
                     <>
-                      <F label="Género" required>
-                        <select {...register(`integrantes.${i}.sexo`)} onChange={(e) => { register(`integrantes.${i}.sexo`).onChange(e); if (e.target.value === 'HOMBRE') setValue(`integrantes.${i}.gestante`, 'NA'); }} className={sel}>
-                          <option value="">— Selecciona —</option>
-                          {SEXO.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-                          <option value="INDETERMINADO">Indeterminado</option>
-                        </select>
-                      </F>
                       <F label="Gestante">
                         <select {...register(`integrantes.${i}.gestante` as const)} onChange={(e) => { register(`integrantes.${i}.gestante`).onChange(e); if (e.target.value !== 'SI') setValue(`integrantes.${i}.mesesGestacion`, null); }} className={sel}>
                           {sexo === 'HOMBRE' ? (

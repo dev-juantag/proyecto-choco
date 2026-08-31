@@ -297,6 +297,15 @@ export async function POST(req: Request) {
         riesgoAccidenteOtro: hogarData.riesdeAccidenteOtro || hogarData.riesgoAccidenteOtro || null,
         animalesOtro: hogarData.animalesOtro || null,
         fuenteEnergiaOtro: hogarData.fuenteEnergiaOtro || null,
+        estadoParedes: hogarData.estadoParedes || null,
+        estadoPisos: hogarData.estadoPisos || null,
+        estadoTechos: hogarData.estadoTechos || null,
+        estadoBano: hogarData.estadoBano || null,
+        estadoCocina: hogarData.estadoCocina || null,
+        observacionesInmueble: hogarData.observacionesInmueble || null,
+        fuenteAguaTratamiento: hogarData.fuenteAguaTratamiento || null,
+        riesgosCambioClimatico: hogarData.riesgosCambioClimatico || [],
+        numIntegrantesMineria: hogarData.numIntegrantesMineria || "0",
       }
     }
 
